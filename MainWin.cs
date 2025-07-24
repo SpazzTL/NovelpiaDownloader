@@ -206,7 +206,7 @@ namespace NovelpiaDownloader
                                         continue;
                                     }
                                     textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-                                    textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
+                                    //textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
                                     if (textStr == "")
                                         continue;
                                     if (font_mapping != null)
@@ -272,7 +272,7 @@ namespace NovelpiaDownloader
                                         continue;
                                     textStr = Regex.Replace(textStr, @"<img.+?>", "");
                                     textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-                                    textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
+                                    //textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
                                     if (textStr == "")
                                         continue;
                                     textStr = HttpUtility.HtmlDecode(textStr);
