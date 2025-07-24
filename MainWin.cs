@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web; 
+using System.Web;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
@@ -140,17 +140,40 @@ namespace NovelpiaDownloader
                     var match = Regex.Match(responseText, @"productName = '(.+?)';");
                     string title = match.Groups[1].Value;
 
-                    // Extract author name
+                    // Extract Author Names
                     var authorMatch = Regex.Match(responseText, @"<a class=""writer-name""[^>]*>\s*(.+?)\s*</a>");
                     string author = authorMatch.Success ? authorMatch.Groups[1].Value.Trim() : "Unknown Author";
-
-                    // Extract tags
+                    // Extract Tags
                     var tagMatches = Regex.Matches(responseText, @"<span class=""tag"".*?>(#.+?)</span>");
                     List<string> tags = new List<string>();
                     foreach (Match tagMatchItem in tagMatches)
                     {
-                        tags.Add(tagMatchItem.Groups[1].Value.TrimStart('#')); // Remove '#' from the tag
+                        tags.Add(tagMatchItem.Groups[1].Value.TrimStart('#'));
                     }
+                    tags = tags.Distinct().ToList();
+
+                    var synopsisMatch = Regex.Match(responseText, @"<div class=""synopsis"">(.*?)</div>", RegexOptions.Singleline);
+                    string synopsis = synopsisMatch.Success ? HttpUtility.HtmlDecode(synopsisMatch.Groups[1].Value.Trim()) : "No synopsis available.";
+                    
+                    
+                    // For completion status
+
+                    string status = "";
+                    var completionMatch = Regex.Match(responseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
+                    if (completionMatch.Success)
+                    {
+                        status = completionMatch.Groups[1].Value.Trim();
+                    }
+                    else
+                    {
+                        var suspensionMatch = Regex.Match(responseText, @"<span class=""s_inv"" style="".*?"">연재중단</span>");
+                        if (suspensionMatch.Success)
+                        {
+                            status = "연재중단";
+                        }
+                    }
+
+
 
                     match = Regex.Match(responseText, @"href=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
                     string url = match.Groups[1].Value;
@@ -192,7 +215,13 @@ namespace NovelpiaDownloader
                             file.Write(string.Join(", ", tags.Select(t => HttpUtility.HtmlEncode(t))));
                             file.Write("</p>\n");
                         }
-                        file.Write("<p>&nbsp;</p>\n"); // Add a blank line after metadata
+                        if (!string.IsNullOrEmpty(status))
+                        {
+                            file.Write($"<p><strong>Status:</strong> {HttpUtility.HtmlEncode(status)}</p>\n");
+                        }
+                        file.Write($"<h2>Synopsis</h2>\n");
+                        file.Write($"{synopsis}\n");
+                        file.Write("<p>&nbsp;</p>\n");
                         file.Write("</body>\n</html>\n");
                     }
 
@@ -214,16 +243,16 @@ namespace NovelpiaDownloader
                                     var textDict = (Dictionary<string, object>)text;
                                     string textStr = (string)textDict["text"];
 
-                                    // Apply HTML Decode for proper rendering in EPUB
+                                    // Decode HTML entities from the source text
                                     textStr = HttpUtility.HtmlDecode(textStr);
 
                                     // Remove specific id attributes 
                                     textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
 
-                                    // Remove all <b> tags (opening and closing)
-                                    textStr = Regex.Replace(textStr, @"<b\b[^>]*>", ""); // Remove opening <b> tags
-                                    textStr = Regex.Replace(textStr, @"</b>", "");         // Remove closing </b> tags
+                                    // Remove empty paragraph tags with specific styles (often used for spacing)
+                                    textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
 
+                                    // Handle image tags: replace with EPUB-friendly img tags and download image
                                     match = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
                                     if (match.Success)
                                     {
@@ -241,36 +270,50 @@ namespace NovelpiaDownloader
                                             file.Write($"{textStr}\n");
                                             imageNo++;
                                         }
-                                        continue;
+                                        continue; // Skip further processing for lines containing images
                                     }
 
-                                    // Forgot why I added..... 
-                                    textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-
-                                    // Handle newlines for EPUB: split and wrap in <p>&nbsp;</p> for blank lines
+                                    // If the text block is empty after processing, write a non-breaking space paragraph
                                     if (string.IsNullOrEmpty(textStr.Trim()))
                                     {
-                                        file.Write("<p>&nbsp;</p>\n"); // Explicit blank line
+                                        file.Write("<p>&nbsp;</p>\n");
                                     }
                                     else
                                     {
-                                        string[] lines = textStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
-                                        foreach (string line in lines)
+                                        // Check if the text block already contains HTML paragraph tags
+                                        bool alreadyContainsParagraphs = Regex.IsMatch(textStr, @"<p\b[^>]*>.*?</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                                        if (alreadyContainsParagraphs)
                                         {
-                                            string trimmedLine = line.Trim();
-                                            if (string.IsNullOrEmpty(trimmedLine))
+                                            // If it already has paragraph tags, write the HTML decoded string directly.
+                                            // This preserves existing bold/italic tags within those paragraphs.
+                                            file.Write($"{textStr}\n");
+                                        }
+                                        else
+                                        {
+                                            // If no paragraph tags are found, split by newlines and wrap each line in a <p> tag.
+                                            // For each line, HTML encode only the plain text content, preserving HTML tags like <b> and <i>.
+                                            string[] lines = textStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+                                            foreach (string line in lines)
                                             {
-                                                file.Write("<p>&nbsp;</p>\n"); // Explicit blank line
-                                            }
-                                            else
-                                            {
-                                                file.Write($"<p>{HttpUtility.HtmlEncode(line)}</p>\n");
+                                                string trimmedLine = line.Trim();
+                                                if (string.IsNullOrEmpty(trimmedLine))
+                                                {
+                                                    file.Write("<p>&nbsp;</p>\n");
+                                                }
+                                                else
+                                                {
+                                                    // This regex encodes everything EXCEPT existing HTML tags (<...>) or HTML entities (&...).
+                                                    // It captures either a tag (Group 1) or non-< characters (Group 2).
+                                                    string encodedLine = Regex.Replace(line, "(<[^>]+>|&[^;]+;)|([^<>&]+)",
+                                                                        m => m.Groups[1].Success ? m.Value : HttpUtility.HtmlEncode(m.Groups[2].Value));
+                                                    file.Write($"<p>{encodedLine}</p>\n");
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                            // Removed: file.Write("</body>\n</html>\n"); as it's now handled by the new cover.html logic
                         }
                         File.Delete(s.Item2);
                     });
@@ -279,12 +322,15 @@ namespace NovelpiaDownloader
                     {
                         file.Write(EpubTemplate.content1);
                         file.Write($"<dc:title>{title}</dc:title>\n");
-                        // Add author to content.opf metadata
                         file.Write($"<dc:creator opf:role=\"aut\">{HttpUtility.HtmlEncode(author)}</dc:creator>\n");
-                        // Add tags to content.opf metadata
+                        file.Write($"<dc:description>{HttpUtility.HtmlEncode(synopsis)}</dc:description>\n");
                         foreach (string tag in tags)
                         {
                             file.Write($"<dc:subject>{HttpUtility.HtmlEncode(tag)}</dc:subject>\n");
+                        }
+                        if (!string.IsNullOrEmpty(status))
+                        {
+                            file.Write($"<dc:subject>{HttpUtility.HtmlEncode(status)}</dc:subject>\n");
                         }
                         file.Write(EpubTemplate.content2);
                         for (int i = 0; i < chapterNames.Count; i++)
@@ -314,7 +360,7 @@ namespace NovelpiaDownloader
 
                     ZipFile.CreateFromDirectory(directory, path);
                 }
-                else 
+                else
                 {
                     using (var file = new StreamWriter(path, false))
                     {
@@ -338,7 +384,6 @@ namespace NovelpiaDownloader
                                     textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
                                     if (textStr == "")
                                         continue;
-                                    textStr = HttpUtility.HtmlDecode(textStr);
                                     if (font_mapping != null)
                                         textStr = font_mapping.DecodeText(textStr);
                                     file.WriteLine(textStr);
@@ -484,6 +529,11 @@ namespace NovelpiaDownloader
         {
             if (e.KeyChar == '\r')
                 font_mapping = new FontMapping(FontBox.Text);
+        }
+
+        private void ExtensionLabel_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
