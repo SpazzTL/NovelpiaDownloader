@@ -3,12 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
+using System.Web; 
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
@@ -138,6 +139,19 @@ namespace NovelpiaDownloader
 
                     var match = Regex.Match(responseText, @"productName = '(.+?)';");
                     string title = match.Groups[1].Value;
+
+                    // Extract author name
+                    var authorMatch = Regex.Match(responseText, @"<a class=""writer-name""[^>]*>\s*(.+?)\s*</a>");
+                    string author = authorMatch.Success ? authorMatch.Groups[1].Value.Trim() : "Unknown Author";
+
+                    // Extract tags
+                    var tagMatches = Regex.Matches(responseText, @"<span class=""tag"".*?>(#.+?)</span>");
+                    List<string> tags = new List<string>();
+                    foreach (Match tagMatchItem in tagMatches)
+                    {
+                        tags.Add(tagMatchItem.Groups[1].Value.TrimStart('#')); // Remove '#' from the tag
+                    }
+
                     match = Regex.Match(responseText, @"href=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
                     string url = match.Groups[1].Value;
                     if (string.IsNullOrEmpty(url))
@@ -168,7 +182,20 @@ namespace NovelpiaDownloader
 
                     int imageNo = 1;
                     using (var file = new StreamWriter(Path.Combine(directory, $"OEBPS/Text/cover.html"), false))
+                    {
                         file.Write(EpubTemplate.cover);
+                        file.Write($"<h1>{HttpUtility.HtmlEncode(title)}</h1>\n");
+                        file.Write($"<p><strong>Author:</strong> {HttpUtility.HtmlEncode(author)}</p>\n");
+                        if (tags.Count > 0)
+                        {
+                            file.Write("<p><strong>Tags:</strong> ");
+                            file.Write(string.Join(", ", tags.Select(t => HttpUtility.HtmlEncode(t))));
+                            file.Write("</p>\n");
+                        }
+                        file.Write("<p>&nbsp;</p>\n"); // Add a blank line after metadata
+                        file.Write("</body>\n</html>\n");
+                    }
+
                     chapterNames.ForEach(s =>
                     {
                         if (!File.Exists(s.Item2))
@@ -190,7 +217,7 @@ namespace NovelpiaDownloader
                                     // Apply HTML Decode for proper rendering in EPUB
                                     textStr = HttpUtility.HtmlDecode(textStr);
 
-                                    // Remove specific id attributes (Or gibberish appears)
+                                    // Remove specific id attributes 
                                     textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
 
                                     // Remove all <b> tags (opening and closing)
@@ -243,7 +270,7 @@ namespace NovelpiaDownloader
                                     }
                                 }
                             }
-                            file.Write("</body>\n</html>\n");
+                            // Removed: file.Write("</body>\n</html>\n"); as it's now handled by the new cover.html logic
                         }
                         File.Delete(s.Item2);
                     });
@@ -252,6 +279,13 @@ namespace NovelpiaDownloader
                     {
                         file.Write(EpubTemplate.content1);
                         file.Write($"<dc:title>{title}</dc:title>\n");
+                        // Add author to content.opf metadata
+                        file.Write($"<dc:creator opf:role=\"aut\">{HttpUtility.HtmlEncode(author)}</dc:creator>\n");
+                        // Add tags to content.opf metadata
+                        foreach (string tag in tags)
+                        {
+                            file.Write($"<dc:subject>{HttpUtility.HtmlEncode(tag)}</dc:subject>\n");
+                        }
                         file.Write(EpubTemplate.content2);
                         for (int i = 0; i < chapterNames.Count; i++)
                         {
