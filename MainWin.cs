@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -186,6 +186,17 @@ namespace NovelpiaDownloader
                                 {
                                     var textDict = (Dictionary<string, object>)text;
                                     string textStr = (string)textDict["text"];
+
+                                    // Apply HTML Decode for proper rendering in EPUB
+                                    textStr = HttpUtility.HtmlDecode(textStr);
+
+                                    // Remove specific id attributes (Or gibberish appears)
+                                    textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
+
+                                    // Remove all <b> tags (opening and closing)
+                                    textStr = Regex.Replace(textStr, @"<b\b[^>]*>", ""); // Remove opening <b> tags
+                                    textStr = Regex.Replace(textStr, @"</b>", "");         // Remove closing </b> tags
+
                                     match = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
                                     if (match.Success)
                                     {
@@ -199,19 +210,37 @@ namespace NovelpiaDownloader
                                                 Path.Combine(directory, $"OEBPS/Images/{image_no}.jpg"), "삽화")));
 
                                             textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
-                                                $"<img alt=\"{imageNo}\" src=\"../Images/{imageNo}.jpg\" width=\"100%\"/>");
-                                            file.Write($"<p>{textStr}</p>\n");
+                                                $"<img alt=\"{imageNo}\" src=\"../Images/{image_no}.jpg\" width=\"100%\"/>");
+                                            file.Write($"{textStr}\n");
                                             imageNo++;
                                         }
                                         continue;
                                     }
+
+                                    // Forgot why I added..... 
                                     textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-                                    //textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
-                                    if (textStr == "")
-                                        continue;
-                                    if (font_mapping != null)
-                                        textStr = font_mapping.DecodeText(textStr);
-                                    file.Write($"<p>{textStr}</p>\n");
+
+                                    // Handle newlines for EPUB: split and wrap in <p>&nbsp;</p> for blank lines
+                                    if (string.IsNullOrEmpty(textStr.Trim()))
+                                    {
+                                        file.Write("<p>&nbsp;</p>\n"); // Explicit blank line
+                                    }
+                                    else
+                                    {
+                                        string[] lines = textStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+                                        foreach (string line in lines)
+                                        {
+                                            string trimmedLine = line.Trim();
+                                            if (string.IsNullOrEmpty(trimmedLine))
+                                            {
+                                                file.Write("<p>&nbsp;</p>\n"); // Explicit blank line
+                                            }
+                                            else
+                                            {
+                                                file.Write($"<p>{HttpUtility.HtmlEncode(line)}</p>\n");
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             file.Write("</body>\n</html>\n");
@@ -251,7 +280,7 @@ namespace NovelpiaDownloader
 
                     ZipFile.CreateFromDirectory(directory, path);
                 }
-                else
+                else 
                 {
                     using (var file = new StreamWriter(path, false))
                     {
@@ -272,7 +301,7 @@ namespace NovelpiaDownloader
                                         continue;
                                     textStr = Regex.Replace(textStr, @"<img.+?>", "");
                                     textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-                                    //textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
+                                    textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
                                     if (textStr == "")
                                         continue;
                                     textStr = HttpUtility.HtmlDecode(textStr);
@@ -317,11 +346,11 @@ namespace NovelpiaDownloader
             {
                 using (var downloader = new WebClient())
                     downloader.DownloadFile(url, path);
-                Invoke(new Action(() => ConsoleBox.AppendText($"{type} 다운로드 완료\r\n")));
+                Invoke(new Action(() => ConsoleBox.AppendText($"{type} 다운로드 완료!\r\n")));
             }
             catch
             {
-                Invoke(new Action(() => ConsoleBox.AppendText($"{type} 다운로드 실패\r\n{url}\r\n")));
+                Invoke(new Action(() => ConsoleBox.AppendText($"{type} 다운로드 실패!\r\n{url}\r\n")));
             }
         }
 
