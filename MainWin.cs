@@ -535,5 +535,101 @@ namespace NovelpiaDownloader
         {
 
         }
-    }
-}
+
+ 
+
+        private void BatchDownloadButton_Click(object sender, EventArgs e)
+        {
+                // Prompt user to select the text file containing the novel list
+                OpenFileDialog openFileDialog = new OpenFileDialog
+                {
+                    Filter = "Text files|*.txt",
+                    Title = "Select the Novel List File"
+                };
+
+                if (openFileDialog.ShowDialog() != DialogResult.OK)
+                {
+                    return; // User cancelled
+                }
+
+                string listFilePath = openFileDialog.FileName;
+
+                // Prompt user to select the output directory
+                FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog
+                {
+                    Description = "Select the output directory for downloaded novels"
+                };
+
+                if (folderBrowserDialog.ShowDialog() != DialogResult.OK)
+                {
+                    return; // User cancelled
+                }
+
+                string outputDirectory = folderBrowserDialog.SelectedPath;
+                bool saveAsEpub = EpubButton.Checked; // Use existing EpubButton state
+
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        Invoke(new Action(() => ConsoleBox.AppendText($"Starting batch download from: {listFilePath}\r\n")));
+                        string[] lines = File.ReadAllLines(listFilePath);
+
+                        foreach (string line in lines)
+                        {
+                            string trimmedLine = line.Trim();
+                            if (string.IsNullOrEmpty(trimmedLine))
+                            {
+                                continue; // Skip empty lines
+                            }
+
+                            string[] parts = trimmedLine.Split(',');
+                            if (parts.Length == 2)
+                            {
+                                string title = parts[0].Trim();
+                                string novelId = parts[1].Trim();
+
+                                // Sanitize title for filename usage
+                                string safeTitle = SanitizeFilename(title);
+
+                                string fileExtension = saveAsEpub ? ".epub" : ".txt";
+                                string outputPath = Path.Combine(outputDirectory, $"{safeTitle}{fileExtension}");
+
+                                Invoke(new Action(() => ConsoleBox.AppendText($"Attempting to download '{title}' (ID: {novelId})\r\n")));
+                                // Call the existing Download method
+                                Download(novelId, saveAsEpub, outputPath);
+                                // Add a small delay between each novel download to be polite to the server
+                                Thread.Sleep(2000); // 2 seconds delay
+                            }
+                            else
+                            {
+                                Invoke(new Action(() => ConsoleBox.AppendText($"Skipping malformed line: {trimmedLine}\r\n")));
+                            }
+                        }
+                        Invoke(new Action(() => ConsoleBox.AppendText("Batch download completed!\r\n")));
+                    }
+                    catch (Exception ex)
+                    {
+                        Invoke(new Action(() => ConsoleBox.AppendText($"An error occurred during batch download: {ex.Message}\r\n")));
+                    }
+                });
+            }
+
+            /// <summary>
+            /// Sanitizes a string to be used as a valid filename.
+            /// Removes invalid characters and replaces them with a safe alternative.
+            /// </summary>
+            /// <param name="filename">The original string.</param>
+            /// <returns>A sanitized string suitable for a filename.</returns>
+            private string SanitizeFilename(string filename)
+            {
+                string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+                string invalidRegStr = string.Format(@"[{0}]", invalidChars);
+                return Regex.Replace(filename, invalidRegStr, "_"); // Replace invalid characters with underscore
+            }
+
+            // --- NEW CODE END ---
+
+        }
+   }
+
