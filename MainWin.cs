@@ -154,8 +154,7 @@ namespace NovelpiaDownloader
 
                     var synopsisMatch = Regex.Match(responseText, @"<div class=""synopsis"">(.*?)</div>", RegexOptions.Singleline);
                     string synopsis = synopsisMatch.Success ? HttpUtility.HtmlDecode(synopsisMatch.Groups[1].Value.Trim()) : "No synopsis available.";
-                    // Remove HTML tags from synopsis for clean text display in metadata
-                    synopsis = Regex.Replace(synopsis, "<.*?>", string.Empty);
+                    
                     
                     // For completion status
 
@@ -530,6 +529,11 @@ namespace NovelpiaDownloader
         {
             if (e.KeyChar == '\r')
                 font_mapping = new FontMapping(FontBox.Text);
+        }
+
+        private void ExtensionLabel_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
