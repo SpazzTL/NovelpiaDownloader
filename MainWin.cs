@@ -12,16 +12,25 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
+using System.Drawing; // Added for Image processing
+using System.Drawing.Imaging; // Added for ImageFormat and Encoder
 
 namespace NovelpiaDownloader
 {
     public partial class MainWin : Form
     {
-        public MainWin()
-        {
-            InitializeComponent();
-            novelpia = new Novelpia();
+        readonly Novelpia novelpia;
+        private FontMapping font_mapping;
 
+        public MainWin() : this(null) { }
+
+        public MainWin(string[] args)
+        {
+            InitializeComponent(); // Initialize UI components first
+
+            novelpia = new Novelpia(); // Initialize novelpia after components
+
+            // Load existing configuration, including authentication details
             if (File.Exists("config.json"))
             {
                 var config_dict = new JavaScriptSerializer().Deserialize<Dictionary<string, dynamic>>(File.ReadAllText("config.json"));
@@ -34,57 +43,194 @@ namespace NovelpiaDownloader
                 if (config_dict.ContainsKey("email") && config_dict.ContainsKey("wd"))
                     if (novelpia.Login(EmailText.Text = config_dict["email"], PasswordText.Text = config_dict["wd"]))
                     {
-                        ConsoleBox.Text += "로그인 성공!\r\n";
-                        LoginkeyText.Text = novelpia.loginkey;
-                        return;
+                        if (ConsoleBox != null) ConsoleBox.Text += "로그인 성공!\r\n";
+                        if (LoginkeyText != null) LoginkeyText.Text = novelpia.loginkey;
                     }
                     else
-                        ConsoleBox.Text += "로그인 실패!\r\n";
+                    {
+                        if (ConsoleBox != null) ConsoleBox.Text += "로그인 실패!\r\n";
+                    }
                 if (config_dict.ContainsKey("loginkey"))
                     novelpia.loginkey = LoginkeyText.Text = config_dict["loginkey"];
+                if (config_dict.ContainsKey("include_html_in_txt")) // This now controls 'saveAsHtml' if not EPUB
+                    HtmlCheckBox.Checked = config_dict["include_html_in_txt"];
+                // Load compression settings
+                if (config_dict.ContainsKey("enable_image_compression"))
+                    ImageCompressCheckBox.Checked = config_dict["enable_image_compression"];
+                if (config_dict.ContainsKey("jpeg_quality"))
+                    JpegQualityNum.Value = config_dict["jpeg_quality"];
+                if (config_dict.ContainsKey("save_as_epub")) // Load EpubButton state for UI
+                    EpubButton.Checked = config_dict["save_as_epub"];
+            }
+
+            // Apply parsed arguments to UI controls if running in UI mode
+            if (args != null && args.Length > 0)
+            {
+                string novelIdArg = null;
+                int? fromChapterArg = null;
+                int? toChapterArg = null;
+                bool saveAsEpubArg = false; // Default to false
+                bool saveAsHtmlArg = false; // New argument for headless HTML
+                bool enableImageCompressionArg = false;
+                int? jpegQualityArg = null;
+
+                for (int i = 0; i < args.Length; i++)
+                {
+                    switch (args[i].ToLower())
+                    {
+                        case "-novelid":
+                            if (i + 1 < args.Length) novelIdArg = args[++i];
+                            break;
+                        case "-from":
+                            if (i + 1 < args.Length && int.TryParse(args[++i], out int fromVal)) fromChapterArg = fromVal;
+                            break;
+                        case "-to":
+                            if (i + 1 < args.Length && int.TryParse(args[++i], out int toVal)) toChapterArg = toVal;
+                            break;
+                        case "-epub": // New argument to explicitly set EPUB
+                            saveAsEpubArg = true;
+                            break;
+                        case "-html": // New argument to explicitly set HTML output
+                            saveAsHtmlArg = true;
+                            break;
+                        case "-compressimages":
+                            enableImageCompressionArg = true;
+                            break;
+                        case "-jpegquality":
+                            if (i + 1 < args.Length && int.TryParse(args[++i], out int qualityVal)) jpegQualityArg = qualityVal;
+                            break;
+                        case "-output":
+                        case "-batch":
+                        case "-listfile":
+                        case "-outputdir":
+                        case "-autostart":
+                            if (i + 1 < args.Length && !args[i + 1].StartsWith("-")) ++i;
+                            break;
+                    }
+                }
+
+                if (NovelNoText != null && !string.IsNullOrEmpty(novelIdArg))
+                {
+                    NovelNoText.Text = novelIdArg;
+                }
+                if (FromNum != null && FromCheck != null && fromChapterArg.HasValue)
+                {
+                    FromNum.Value = fromChapterArg.Value;
+                    FromCheck.Checked = true;
+                }
+                if (ToNum != null && ToCheck != null && toChapterArg.HasValue)
+                {
+                    ToNum.Value = toChapterArg.Value;
+                    ToCheck.Checked = true;
+                }
+                if (EpubButton != null && saveAsEpubArg)
+                {
+                    EpubButton.Checked = true; // Set EPUB if argument is present
+                }
+                // HTML checkbox now defaults to true if -html is passed and not -epub
+                if (HtmlCheckBox != null && saveAsHtmlArg && !EpubButton.Checked)
+                {
+                    HtmlCheckBox.Checked = true;
+                }
+                if (ImageCompressCheckBox != null && enableImageCompressionArg)
+                {
+                    ImageCompressCheckBox.Checked = true;
+                }
+                if (JpegQualityNum != null && jpegQualityArg.HasValue)
+                {
+                    JpegQualityNum.Value = jpegQualityArg.Value;
+                }
             }
         }
 
-        readonly Novelpia novelpia;
-        private FontMapping font_mapping;
-
-        private void DownloadButton_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Core download logic for a single novel, used by both UI and headless modes.
+        /// </summary>
+        /// <param name="novelNo">The ID of the novel to download.</param>
+        /// <param name="saveAsEpub">True to save as EPUB.</param>
+        /// <param name="saveAsHtml">True to save as standalone HTML (if not saving as EPUB).</param>
+        /// <param name="path">The full output path including filename (e.g., C:\novel.txt or C:\novel.epub).</param>
+        /// <param name="fromChapter">Optional: Starting chapter number (1-indexed).</param>
+        /// <param name="toChapter">Optional: Ending chapter number (1-indexed).</param>
+        /// <param name="enableImageCompression">True to enable image compression.</param>
+        /// <param name="jpegQuality">JPEG quality percentage (0-100) if compression is enabled.</param>
+        /// <param name="isHeadless">True if running in headless mode (logs to Console), false for UI mode (logs to ConsoleBox).</param>
+        /// <returns>A Task representing the asynchronous download operation.</returns>
+        public Task DownloadCore(
+            string novelNo,
+            bool saveAsEpub,
+            bool saveAsHtml, // New parameter for standalone HTML output
+            string path,
+            int? fromChapter = null,
+            int? toChapter = null,
+            bool enableImageCompression = false,
+            int jpegQuality = 80,
+            bool isHeadless = false)
         {
-            bool saveAsEpub = EpubButton.Checked;
-            SaveFileDialog sfd = new SaveFileDialog
+            Action<string> log = (msg) =>
             {
-                Filter = saveAsEpub ? "|*.epub" : "|*.txt"
+                if (isHeadless)
+                {
+                    Console.WriteLine(msg);
+                }
+                else
+                {
+                    if (ConsoleBox != null && ConsoleBox.InvokeRequired)
+                    {
+                        ConsoleBox.Invoke(new Action(() => ConsoleBox.AppendText(msg)));
+                    }
+                    else if (ConsoleBox != null)
+                    {
+                        ConsoleBox.AppendText(msg);
+                    }
+                }
             };
-            if (sfd.ShowDialog() == DialogResult.OK)
-            {
-                Download(NovelNoText.Text, saveAsEpub, sfd.FileName);
-            }
-            sfd.Dispose();
-        }
 
-        void Download(string novelNo, bool saveAsEpub, string path)
-        {
-            ConsoleBox.AppendText("다운로드 시작!\r\n");
-            string directory = Path.Combine(Path.GetDirectoryName(path), novelNo);
-            Directory.CreateDirectory(directory);
-            int thread_num = (int)ThreadNum.Value;
-            float interval = (float)IntervalNum.Value;
-            int from = FromCheck.Checked ? (int)FromNum.Value - 1 : 0;
-            int to = ToCheck.Checked ? (int)ToNum.Value : int.MaxValue;
-            Task.Run(() =>
+            Task downloadTask = Task.Run(() =>
             {
+                log("다운로드 시작!\r\n");
+                string directory = Path.Combine(Path.GetDirectoryName(path), novelNo);
+                Directory.CreateDirectory(directory);
+
+                int thread_num = 1;
+                float interval = 0.5f;
+                if (!isHeadless) // Only get UI values if not headless
+                {
+                    if (ThreadNum != null) thread_num = (int)ThreadNum.Value;
+                    if (IntervalNum != null) interval = (float)IntervalNum.Value;
+                    if (ImageCompressCheckBox != null) enableImageCompression = ImageCompressCheckBox.Checked;
+                    if (JpegQualityNum != null) jpegQuality = (int)JpegQualityNum.Value;
+                    // For UI mode, ensure saveAsEpub and saveAsHtml reflect UI choices
+                    saveAsEpub = EpubButton.Checked;
+                    saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub; // HTML checkbox now means standalone HTML if not EPUB
+                }
+
+
+                int from = fromChapter.HasValue ? fromChapter.Value - 1 : 0;
+                int to = toChapter.HasValue ? toChapter.Value : int.MaxValue;
+
                 int chapterNo = 0;
                 int page = 0;
                 var chapterIds = new List<string>();
                 var chapterNames = new List<(string, string)>();
                 List<Thread> threads = new List<Thread>();
                 bool get_content = true;
+
+                var imageDownloadInfos = new List<(string url, string localPath, string type)>();
+                int currentImageCounter = 1;
+
                 while (get_content)
                 {
                     string data = $"novel_no={novelNo}&sort=DOWN&page={page}";
-                    string resp = PostRequest("https://novelpia.com/proc/episode_list", "", data);
+                    string resp = PostRequest(log, $"https://novelpia.com/proc/episode_list", novelpia.loginkey, data);
+                    if (resp == null || resp.Contains("본인인증"))
+                    {
+                        log("Authentication failed or content not available. Exiting download.\r\n");
+                        get_content = false;
+                        break;
+                    }
                     var chapters = Regex.Matches(resp, @"id=""bookmark_(\d+)""></i>(.+?)</b>");
-                    if (chapterIds.Contains(chapters[0].Groups[1].Value))
+                    if (chapters.Count == 0 || chapterIds.Contains(chapters[0].Groups[1].Value))
                         break;
                     foreach (Match chapter in chapters)
                     {
@@ -101,7 +247,7 @@ namespace NovelpiaDownloader
                         string chapterId = chapter.Groups[1].Value;
                         string chapterName = chapter.Groups[2].Value;
                         string jsonPath = Path.Combine(directory, $"{chapterNo.ToString().PadLeft(4, '0')}.json");
-                        threads.Add(new Thread(() => DownloadChapter(chapterId, chapterName, jsonPath)));
+                        threads.Add(new Thread(() => DownloadChapter(log, chapterId, chapterName, jsonPath)));
                         chapterNames.Add((HttpUtility.HtmlEncode(chapterName), jsonPath));
                         chapterIds.Add(chapterId);
                         chapterNo++;
@@ -112,12 +258,84 @@ namespace NovelpiaDownloader
                 ExecuteThreads(threads, thread_num, interval);
                 threads.Clear();
 
+                // Determine output format
+                string finalFileExtension;
+                if (saveAsEpub)
+                {
+                    finalFileExtension = ".epub";
+                }
+                else if (saveAsHtml)
+                {
+                    finalFileExtension = ".html";
+                }
+                else
+                {
+                    finalFileExtension = ".txt";
+                }
+
+                string outputPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + finalFileExtension);
+                if (File.Exists(outputPath))
+                    File.Delete(outputPath);
+
+                // Common logic for retrieving novel metadata (used by all formats)
+                string responseText;
+                var request = (HttpWebRequest)WebRequest.Create($"https://novelpia.com/novel/{novelNo}");
+                request.Method = "GET";
+                request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build=MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
+                request.Headers.Add("cookie", $"LOGINKEY={novelpia.loginkey};");
+                var response = (HttpWebResponse)request.GetResponse();
+                using (var streamReader = new StreamReader(response.GetResponseStream()))
+                {
+                    responseText = streamReader.ReadToEnd();
+                }
+
+                var titleMatch = Regex.Match(responseText, @"productName = '(.+?)';");
+                string title = titleMatch.Groups[1].Value;
+
+                var authorMatch = Regex.Match(responseText, @"<a class=""writer-name""[^>]*>\s*(.+?)\s*</a>");
+                string author = authorMatch.Success ? authorMatch.Groups[1].Value.Trim() : "Unknown Author";
+                var tagMatches = Regex.Matches(responseText, @"<span class=""tag"".*?>(#.+?)</span>");
+                List<string> tags = new List<string>();
+                foreach (Match tagMatchItem in tagMatches)
+                {
+                    tags.Add(tagMatchItem.Groups[1].Value.TrimStart('#'));
+                }
+                tags = tags.Distinct().ToList();
+
+                var synopsisMatch = Regex.Match(responseText, @"<div class=""synopsis"">(.*?)</div>", RegexOptions.Singleline);
+                string synopsis = synopsisMatch.Success ? HttpUtility.HtmlDecode(synopsisMatch.Groups[1].Value.Trim()) : "No synopsis available.";
+
+                string status = "";
+                var completionMatch = Regex.Match(responseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
+                if (completionMatch.Success)
+                {
+                    status = completionMatch.Groups[1].Value.Trim();
+                }
+                else
+                {
+                    var suspensionMatch = Regex.Match(responseText, @"<span class=""s_inv"" style="".*?"">연재중단</span>");
+                    if (suspensionMatch.Success)
+                    {
+                        status = "연재중단";
+                    }
+                }
+
+                var coverUrlMatch = Regex.Match(responseText, @"href=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
+                string cover_url = coverUrlMatch.Groups[1].Value;
+                if (string.IsNullOrEmpty(cover_url))
+                {
+                    coverUrlMatch = Regex.Match(responseText, @"src=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
+                    cover_url = coverUrlMatch.Groups[1].Value;
+                }
+
+                // Process based on chosen format
                 if (saveAsEpub)
                 {
                     Directory.CreateDirectory(Path.Combine(directory, "META-INF"));
                     Directory.CreateDirectory(Path.Combine(directory, "OEBPS/Styles"));
                     Directory.CreateDirectory(Path.Combine(directory, "OEBPS/Text"));
                     Directory.CreateDirectory(Path.Combine(directory, "OEBPS/Images"));
+
                     using (var file = new StreamWriter(Path.Combine(directory, "mimetype"), false))
                         file.Write("application/epub+zip");
                     using (var file = new StreamWriter(Path.Combine(directory, "META-INF/container.xml"), false))
@@ -126,66 +344,8 @@ namespace NovelpiaDownloader
                         file.Write(EpubTemplate.sgctoc);
                     using (var file = new StreamWriter(Path.Combine(directory, "OEBPS/Styles/Stylesheet.css"), false))
                         file.Write(EpubTemplate.stylesheet);
-                    string responseText;
-                    var request = (HttpWebRequest)WebRequest.Create($"https://novelpia.com/novel/{novelNo}");
-                    request.Method = "GET";
-                    request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
-                    request.Headers.Add("cookie", $"LOGINKEY={novelpia.loginkey};");
-                    var response = (HttpWebResponse)request.GetResponse();
-                    using (var streamReader = new StreamReader(response.GetResponseStream()))
-                    {
-                        responseText = streamReader.ReadToEnd();
-                    }
 
-                    var match = Regex.Match(responseText, @"productName = '(.+?)';");
-                    string title = match.Groups[1].Value;
-
-                    // Extract Author Names
-                    var authorMatch = Regex.Match(responseText, @"<a class=""writer-name""[^>]*>\s*(.+?)\s*</a>");
-                    string author = authorMatch.Success ? authorMatch.Groups[1].Value.Trim() : "Unknown Author";
-                    // Extract Tags
-                    var tagMatches = Regex.Matches(responseText, @"<span class=""tag"".*?>(#.+?)</span>");
-                    List<string> tags = new List<string>();
-                    foreach (Match tagMatchItem in tagMatches)
-                    {
-                        tags.Add(tagMatchItem.Groups[1].Value.TrimStart('#'));
-                    }
-                    tags = tags.Distinct().ToList();
-
-                    var synopsisMatch = Regex.Match(responseText, @"<div class=""synopsis"">(.*?)</div>", RegexOptions.Singleline);
-                    string synopsis = synopsisMatch.Success ? HttpUtility.HtmlDecode(synopsisMatch.Groups[1].Value.Trim()) : "No synopsis available.";
-                    
-                    
-                    // For completion status
-
-                    string status = "";
-                    var completionMatch = Regex.Match(responseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
-                    if (completionMatch.Success)
-                    {
-                        status = completionMatch.Groups[1].Value.Trim();
-                    }
-                    else
-                    {
-                        var suspensionMatch = Regex.Match(responseText, @"<span class=""s_inv"" style="".*?"">연재중단</span>");
-                        if (suspensionMatch.Success)
-                        {
-                            status = "연재중단";
-                        }
-                    }
-
-
-
-                    match = Regex.Match(responseText, @"href=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
-                    string url = match.Groups[1].Value;
-                    if (string.IsNullOrEmpty(url))
-                    {
-                        match = Regex.Match(responseText, @"src=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
-                        url = match.Groups[1].Value;
-                    }
-
-                    string cover_url = url;
-                    threads.Add(new Thread(() => DownloadImage(cover_url,
-                        Path.Combine(directory, $"OEBPS/Images/cover.jpg"), "커버")));
+                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"OEBPS/Images/cover.jpg"), "커버"));
 
                     using (var file = new StreamWriter(Path.Combine(directory, "OEBPS/toc.ncx"), false))
                     {
@@ -203,7 +363,6 @@ namespace NovelpiaDownloader
                         file.Write("</navMap>\n</ncx>\n");
                     }
 
-                    int imageNo = 1;
                     using (var file = new StreamWriter(Path.Combine(directory, $"OEBPS/Text/cover.html"), false))
                     {
                         file.Write(EpubTemplate.cover);
@@ -243,56 +402,39 @@ namespace NovelpiaDownloader
                                     var textDict = (Dictionary<string, object>)text;
                                     string textStr = (string)textDict["text"];
 
-                                    // Decode HTML entities from the source text
                                     textStr = HttpUtility.HtmlDecode(textStr);
 
-                                    // Remove specific id attributes 
-                                    textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
-
-                                    // Remove empty paragraph tags with specific styles (often used for spacing)
-                                    textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-
-                                    // Handle image tags: replace with EPUB-friendly img tags and download image
-                                    match = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
-                                    if (match.Success)
+                                    var imgMatch = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
+                                    if (imgMatch.Success)
                                     {
                                         if (!textStr.Contains("cover-wrapper"))
                                         {
-                                            url = match.Groups[1].Value;
-
-                                            string image_url = url;
-                                            int image_no = imageNo;
-                                            threads.Add(new Thread(() => DownloadImage(image_url,
-                                                Path.Combine(directory, $"OEBPS/Images/{image_no}.jpg"), "삽화")));
-
+                                            string url = imgMatch.Groups[1].Value;
+                                            string imageFilename = $"{currentImageCounter}.jpg";
+                                            imageDownloadInfos.Add((url, Path.Combine(directory, $"OEBPS/Images/{imageFilename}"), "삽화"));
                                             textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
-                                                $"<img alt=\"{imageNo}\" src=\"../Images/{image_no}.jpg\" width=\"100%\"/>");
-                                            file.Write($"{textStr}\n");
-                                            imageNo++;
+                                                $"<img alt=\"{currentImageCounter}\" src=\"../Images/{imageFilename}\" width=\"100%\"/>");
+                                            currentImageCounter++;
                                         }
-                                        continue; // Skip further processing for lines containing images
                                     }
 
-                                    // If the text block is empty after processing, write a non-breaking space paragraph
+                                    textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
+                                    textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
+
                                     if (string.IsNullOrEmpty(textStr.Trim()))
                                     {
                                         file.Write("<p>&nbsp;</p>\n");
                                     }
                                     else
                                     {
-                                        // Check if the text block already contains HTML paragraph tags
                                         bool alreadyContainsParagraphs = Regex.IsMatch(textStr, @"<p\b[^>]*>.*?</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
                                         if (alreadyContainsParagraphs)
                                         {
-                                            // If it already has paragraph tags, write the HTML decoded string directly.
-                                            // This preserves existing bold/italic tags within those paragraphs.
                                             file.Write($"{textStr}\n");
                                         }
                                         else
                                         {
-                                            // If no paragraph tags are found, split by newlines and wrap each line in a <p> tag.
-                                            // For each line, HTML encode only the plain text content, preserving HTML tags like <b> and <i>.
                                             string[] lines = textStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
                                             foreach (string line in lines)
                                             {
@@ -303,10 +445,8 @@ namespace NovelpiaDownloader
                                                 }
                                                 else
                                                 {
-                                                    // This regex encodes everything EXCEPT existing HTML tags (<...>) or HTML entities (&...).
-                                                    // It captures either a tag (Group 1) or non-< characters (Group 2).
-                                                    string encodedLine = Regex.Replace(line, "(<[^>]+>|&[^;]+;)|([^<>&]+)",
-                                                                        m => m.Groups[1].Success ? m.Value : HttpUtility.HtmlEncode(m.Groups[2].Value));
+                                                    string encodedLine = Regex.Replace(trimmedLine, "(<[^>]+>|&[^;]+;)|([^<>&]+)",
+                                                                         m => m.Groups[1].Success ? m.Value : HttpUtility.HtmlEncode(m.Groups[2].Value));
                                                     file.Write($"<p>{encodedLine}</p>\n");
                                                 }
                                             }
@@ -333,12 +473,14 @@ namespace NovelpiaDownloader
                             file.Write($"<dc:subject>{HttpUtility.HtmlEncode(status)}</dc:subject>\n");
                         }
                         file.Write(EpubTemplate.content2);
+                        file.Write("<item id=\"cover.html\" href=\"Text/cover.html\" media-type=\"application/xhtml+xml\"/>\n");
+                        file.Write("<item id=\"cover-image\" href=\"Images/cover.jpg\" media-type=\"image/jpeg\" properties=\"cover-image\"/>\n");
                         for (int i = 0; i < chapterNames.Count; i++)
                         {
                             string temp = Path.ChangeExtension(Path.GetFileName(chapterNames[i].Item2), "html");
                             file.Write($"<item id=\"chapter{temp}\" href=\"Text/chapter{temp}\" media-type=\"application/xhtml+xml\"/>\n");
                         }
-                        for (int i = 1; i < imageNo; i++)
+                        for (int i = 1; i < currentImageCounter; i++)
                         {
                             file.Write($"<item id=\"{i}.jpg\" href=\"Images/{i}.jpg\" media-type=\"image/jpeg\"/>\n");
                         }
@@ -353,84 +495,412 @@ namespace NovelpiaDownloader
                             "</guide>\n</package>\n");
                     }
 
-                    if (File.Exists(path))
-                        File.Delete(path);
-
-                    ExecuteThreads(threads, thread_num, interval);
-
-                    ZipFile.CreateFromDirectory(directory, path);
-                }
-                else
-                {
-                    using (var file = new StreamWriter(path, false))
+                    List<Thread> imageThreads = new List<Thread>();
+                    foreach (var imgInfo in imageDownloadInfos)
                     {
-                        var serializer = new JavaScriptSerializer();
-                        chapterNames.ForEach(s =>
+                        imageThreads.Add(new Thread(() => DownloadImage(log, imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality)));
+                    }
+                    ExecuteThreads(imageThreads, thread_num, interval);
+
+                    ZipFile.CreateFromDirectory(directory, outputPath);
+                }
+                else if (saveAsHtml) // New HTML output format
+                {
+                    Directory.CreateDirectory(Path.Combine(directory, "Images")); // Images go into a subdirectory for HTML
+                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"Images/cover.jpg"), "커버")); // Save cover for HTML
+
+                    using (var file = new StreamWriter(outputPath, false, Encoding.UTF8))
+                    {
+                        // Write HTML header
+                        file.Write("<!DOCTYPE html>\n<html lang=\"ko\">\n<head>\n<meta charset=\"UTF-8\">\n");
+                        file.Write($"<title>{HttpUtility.HtmlEncode(title)}</title>\n");
+                        file.Write("<style>\nbody { font-family: sans-serif; line-height: 1.6; margin: 20px; }\n");
+                        file.Write("h1, h2 { color: #333; }\nimg { max-width: 100%; height: auto; display: block; margin: 10px auto; }\n");
+                        file.Write("</style>\n</head>\n<body>\n");
+
+                        // Add metadata to the HTML file
+                        file.Write($"<h1>{HttpUtility.HtmlEncode(title)}</h1>\n");
+                        file.Write($"<p><strong>Author:</strong> {HttpUtility.HtmlEncode(author)}</p>\n");
+                        if (tags.Count > 0)
                         {
-                            file.Write($"{s.Item1}\n\n");
-                            if (!File.Exists(s.Item2))
-                                return;
-                            using (var reader = new StreamReader(s.Item2, Encoding.UTF8))
+                            file.Write("<p><strong>Tags:</strong> ");
+                            file.Write(string.Join(", ", tags.Select(t => HttpUtility.HtmlEncode(t))));
+                            file.Write("</p>\n");
+                        }
+                        if (!string.IsNullOrEmpty(status))
+                        {
+                            file.Write($"<p><strong>Status:</strong> {HttpUtility.HtmlEncode(status)}</p>\n");
+                        }
+                        file.Write($"<h2>Synopsis</h2>\n");
+                        file.Write($"{synopsis}\n");
+                        file.Write("<p>&nbsp;</p>\n");
+                        file.Write($"<p><img src=\"{novelNo}/Images/cover.jpg\" alt=\"Cover\"></p>\n"); // Reference cover image
+
+                        var serializer = new JavaScriptSerializer();
+                        foreach (var chapterInfo in chapterNames)
+                        {
+                            file.Write($"<h2>{chapterInfo.Item1}</h2>\n"); // Chapter title
+                            file.Write("<p>&nbsp;</p>\n");
+
+                            if (!File.Exists(chapterInfo.Item2))
+                                continue;
+
+                            using (var reader = new StreamReader(chapterInfo.Item2, Encoding.UTF8))
                             {
                                 var texts = serializer.Deserialize<Dictionary<string, object>>(reader.ReadToEnd());
                                 foreach (var text in (ArrayList)texts["s"])
                                 {
                                     var textDict = (Dictionary<string, object>)text;
                                     string textStr = (string)textDict["text"];
-                                    if (textStr.Contains("cover-wrapper"))
-                                        continue;
-                                    textStr = Regex.Replace(textStr, @"<img.+?>", "");
+                                    textStr = HttpUtility.HtmlDecode(textStr);
+
+                                    var imgMatch = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
+                                    if (imgMatch.Success)
+                                    {
+                                        if (!textStr.Contains("cover-wrapper"))
+                                        {
+                                            string url = imgMatch.Groups[1].Value;
+                                            string imageFilename = $"{currentImageCounter}.jpg";
+                                            // Image path relative to the HTML file's directory
+                                            imageDownloadInfos.Add((url, Path.Combine(directory, $"Images/{imageFilename}"), "삽화"));
+                                            textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
+                                                $"<img alt=\"{currentImageCounter}\" src=\"{novelNo}/Images/{imageFilename}\" width=\"100%\"/>");
+                                            currentImageCounter++;
+                                        }
+                                    }
+
+                                    textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
                                     textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-                                    textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
-                                    if (textStr == "")
-                                        continue;
-                                    if (font_mapping != null)
-                                        textStr = font_mapping.DecodeText(textStr);
-                                    file.WriteLine(textStr);
+
+                                    if (string.IsNullOrEmpty(textStr.Trim()))
+                                    {
+                                        file.Write("<p>&nbsp;</p>\n");
+                                    }
+                                    else
+                                    {
+                                        bool alreadyContainsParagraphs = Regex.IsMatch(textStr, @"<p\b[^>]*>.*?</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                                        if (alreadyContainsParagraphs)
+                                        {
+                                            file.Write($"{textStr}\n");
+                                        }
+                                        else
+                                        {
+                                            string[] lines = textStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+                                            foreach (string line in lines)
+                                            {
+                                                string trimmedLine = line.Trim();
+                                                if (string.IsNullOrEmpty(trimmedLine))
+                                                {
+                                                    file.Write("<p>&nbsp;</p>\n");
+                                                }
+                                                else
+                                                {
+                                                    string encodedLine = Regex.Replace(trimmedLine, "(<[^>]+>|&[^;]+;)|([^<>&]+)",
+                                                                                     m => m.Groups[1].Success ? m.Value : HttpUtility.HtmlEncode(m.Groups[2].Value));
+                                                    file.Write($"<p>{encodedLine}</p>\n");
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                            file.Write("\n");
-                            File.Delete(s.Item2);
-                        });
+                            File.Delete(chapterInfo.Item2); // Delete temporary JSON chapter file
+                        }
+                        file.Write("</body>\n</html>\n");
                     }
+
+                    List<Thread> imageThreads = new List<Thread>();
+                    foreach (var imgInfo in imageDownloadInfos)
+                    {
+                        imageThreads.Add(new Thread(() => DownloadImage(log, imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality)));
+                    }
+                    ExecuteThreads(imageThreads, thread_num, interval);
+
                 }
-                Directory.Delete(directory, true);
-                Invoke(new Action(() => ConsoleBox.AppendText("다운로드 완료!\r\n")));
+                else // Save as plain .txt (default if not EPUB and not HTML)
+                {
+                    using (var file = new StreamWriter(outputPath, false, Encoding.UTF8))
+                    {
+                        var serializer = new JavaScriptSerializer();
+
+                        foreach (var chapterInfo in chapterNames)
+                        {
+                            file.Write($"{chapterInfo.Item1}\n\n"); // Chapter title
+
+                            if (!File.Exists(chapterInfo.Item2))
+                                continue;
+
+                            using (var reader = new StreamReader(chapterInfo.Item2, Encoding.UTF8))
+                            {
+                                var texts = serializer.Deserialize<Dictionary<string, object>>(reader.ReadToEnd());
+                                foreach (var text in (ArrayList)texts["s"])
+                                {
+                                    var textDict = (Dictionary<string, object>)text;
+                                    string textStr = (string)textDict["text"];
+
+                                    textStr = HttpUtility.HtmlDecode(textStr);
+
+                                    // Replace images with a placeholder in plain text
+                                    textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>", "[Image Inserted]\r\n");
+
+                                    textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
+                                    textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
+
+                                    if (string.IsNullOrEmpty(textStr.Trim()))
+                                    {
+                                        file.Write("\n");
+                                    }
+                                    else
+                                    {
+                                        string plainText = Regex.Replace(textStr, "<[^>]*>", ""); // Remove all HTML tags
+                                        plainText = HttpUtility.HtmlDecode(plainText); // Decode HTML entities
+                                        file.Write($"{plainText.Trim()}\n");
+                                    }
+                                }
+                            }
+                            file.Write("\n"); // Add an extra newline between chapters
+                            File.Delete(chapterInfo.Item2); // Delete temporary JSON chapter file
+                        }
+                    }
+                    // No images downloaded for plain text, so no image threads needed here.
+                }
+
+                try
+                {
+                    Directory.Delete(directory, true);
+                }
+                catch (IOException ex)
+                {
+                    log($"Warning: Could not fully delete temporary directory {directory}: {ex.Message}\r\n");
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    log($"Warning: Unauthorized access attempting to delete temporary directory {directory}: {ex.Message}\r\n");
+                }
+
+                log("다운로드 완료!\r\n");
             });
+
+            return downloadTask;
         }
 
-        private void DownloadChapter(string chapterId, string chapterName, string jsonPath)
+        /// <summary>
+        /// Core batch download logic, used by both UI and headless modes.
+        /// </summary>
+        /// <param name="listFilePath">Path to the text file containing novel titles and IDs.</param>
+        /// <param name="outputDirectory">Directory where downloaded novels will be saved.</param>
+        /// <param name="saveAsEpub">True to save as EPUB.</param>
+        /// <param name="saveAsHtml">True to save as standalone HTML (if not saving as EPUB).</param>
+        /// <param name="enableImageCompression">True to enable image compression.</param>
+        /// <param name="jpegQuality">JPEG quality percentage (0-100) if compression is enabled.</param>
+        /// <param name="isHeadless">True if running in headless mode (logs to Console), false for UI mode (logs to ConsoleBox).</param>
+        /// <summary>
+        /// Core batch download logic, used by both UI and headless modes.
+        /// </summary>
+        /// <param name="listFilePath">Path to the text file containing novel titles and IDs.</param>
+        /// <param name="outputDirectory">Directory where downloaded novels will be saved.</param>
+        /// <param name="saveAsEpub">True to save as EPUB.</param>
+        /// <param name="saveAsHtml">True to save as standalone HTML (if not saving as EPUB).</param>
+        /// <param name="enableImageCompression">True to enable image compression.</param>
+        /// <param name="jpegQuality">JPEG quality percentage (0-100) if compression is enabled.</param>
+        /// <param name="isHeadless">True if running in headless mode (logs to Console), false for UI mode (logs to ConsoleBox).</param>
+        public void BatchDownloadCore(string listFilePath, string outputDirectory, bool saveAsEpub, bool saveAsHtml, // Updated parameters
+                                      bool enableImageCompression = false, int jpegQuality = 80,
+                                      bool isHeadless = false)
+        {
+            Action<string> log = (msg) =>
+            {
+                if (isHeadless)
+                {
+                    Console.WriteLine(msg);
+                }
+                else
+                {
+                    if (ConsoleBox != null && ConsoleBox.InvokeRequired)
+                    {
+                        ConsoleBox.Invoke(new Action(() => ConsoleBox.AppendText(msg)));
+                    }
+                    else if (ConsoleBox != null)
+                    {
+                        ConsoleBox.AppendText(msg);
+                    }
+                }
+            };
+
+            log($"Starting batch download from: {listFilePath}\r\n");
+            Task batchDownloadTask = Task.Run(() =>
+            {
+                try
+                {
+                    if (!File.Exists(listFilePath))
+                    {
+                        log($"Error: List file not found at {listFilePath}\r\n");
+                        return;
+                    }
+                    if (!Directory.Exists(outputDirectory))
+                    {
+                        Directory.CreateDirectory(outputDirectory);
+                    }
+
+                    string[] lines = File.ReadAllLines(listFilePath);
+
+                    // Process novels one by one to avoid rate-limiting.
+                    foreach (string line in lines)
+                    {
+                        string trimmedLine = line.Trim();
+                        if (string.IsNullOrEmpty(trimmedLine))
+                        {
+                            continue;
+                        }
+
+                        string[] parts = trimmedLine.Split(',');
+                        if (parts.Length == 2)
+                        {
+                            string title = parts[0].Trim();
+                            string novelId = parts[1].Trim();
+
+                            string safeTitle = SanitizeFilename(title);
+
+                            string fileExtension;
+                            if (saveAsEpub)
+                            {
+                                fileExtension = ".epub";
+                            }
+                            else if (saveAsHtml)
+                            {
+                                fileExtension = ".html";
+                            }
+                            else
+                            {
+                                fileExtension = ".txt";
+                            }
+
+                            string outputPath = Path.Combine(outputDirectory, $"{safeTitle}{fileExtension}");
+
+                            log($"Attempting to download '{title}' (ID: {novelId}) to {outputPath}\r\n");
+
+                            try
+                            {
+                                // Call DownloadCore and wait for it to complete before starting the next one.
+                                Task novelDownloadTask = DownloadCore(
+                                    novelId,
+                                    saveAsEpub,
+                                    saveAsHtml,
+                                    outputPath,
+                                    null,
+                                    null,
+                                    enableImageCompression,
+                                    jpegQuality,
+                                    isHeadless
+                                );
+                                novelDownloadTask.Wait(); // Wait for the current novel to finish.
+
+                                log($"Finished downloading '{title}'.\r\n");
+                                Thread.Sleep(2000); // A short pause between novels is still good practice.
+                            }
+                            catch (Exception ex)
+                            {
+                                // Log the error for the specific novel and continue with the batch.
+                                log($"An error occurred while downloading '{title}' (ID: {novelId}). Moving to next novel. Error: {ex.Message}\r\n");
+                            }
+                        }
+                        else
+                        {
+                            log($"Skipping malformed line in list file: {trimmedLine}\r\n");
+                        }
+                    }
+                    log("Batch download process completed!\r\n");
+                }
+                catch (Exception ex)
+                {
+                    // This will catch errors related to file reading or other unexpected issues.
+                    log($"A critical error occurred during the batch download process: {ex.Message}\r\n");
+                }
+            });
+
+            if (isHeadless)
+            {
+                batchDownloadTask.Wait();
+            }
+        }
+
+        private void DownloadChapter(Action<string> log, string chapterId, string chapterName, string jsonPath)
         {
             try
             {
-                string resp = PostRequest($"https://novelpia.com/proc/viewer_data/{chapterId}", novelpia.loginkey);
+                string resp = PostRequest(log, $"https://novelpia.com/proc/viewer_data/{chapterId}", novelpia.loginkey);
                 if (string.IsNullOrEmpty(resp) || resp.Contains("본인인증"))
-                    throw new Exception();
+                    throw new Exception("Authentication failed or content not available.");
                 using (var file = new StreamWriter(jsonPath, false))
                     file.Write(resp);
-                Invoke(new Action(() => ConsoleBox.AppendText(chapterName + "\r\n")));
+                log(chapterName + "\r\n");
             }
-            catch
+            catch (Exception ex)
             {
-                Invoke(new Action(() => ConsoleBox.AppendText(chapterName + " ERROR!\r\n")));
+                log($"{chapterName} ERROR! {ex.Message}\r\n");
             }
         }
 
-        private void DownloadImage(string url, string path, string type)
+        private void DownloadImage(Action<string> log, string url, string path, string type, bool enableCompression, int jpegQuality)
         {
             if (!url.StartsWith("http"))
                 url = "https:" + url;
-            Invoke(new Action(() => ConsoleBox.AppendText($"{type} 다운로드 시작\r\n{url}\r\n")));
+            log($"{type} 다운로드 시작\r\n{url}\r\n");
             try
             {
+                string directory = Path.GetDirectoryName(path);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                byte[] imageData;
                 using (var downloader = new WebClient())
-                    downloader.DownloadFile(url, path);
-                Invoke(new Action(() => ConsoleBox.AppendText($"{type} 다운로드 완료!\r\n")));
+                {
+                    imageData = downloader.DownloadData(url);
+                }
+
+                if (enableCompression && jpegQuality >= 0 && jpegQuality <= 100)
+                {
+                    using (MemoryStream ms = new MemoryStream(imageData))
+                    {
+                        using (Image originalImage = Image.FromStream(ms))
+                        {
+                            ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+                            System.Drawing.Imaging.Encoder qualityEncoder = System.Drawing.Imaging.Encoder.Quality;
+                            EncoderParameters encoderParameters = new EncoderParameters(1);
+                            EncoderParameter qualityParameter = new EncoderParameter(qualityEncoder, (long)jpegQuality);
+                            encoderParameters.Param[0] = qualityParameter;
+
+                            originalImage.Save(path, jpgEncoder, encoderParameters);
+                            log($"{type} (압축됨, 품질: {jpegQuality}%) 다운로드 완료!\r\n");
+                        }
+                    }
+                }
+                else
+                {
+                    File.WriteAllBytes(path, imageData);
+                    log($"{type} 다운로드 완료!\r\n");
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                Invoke(new Action(() => ConsoleBox.AppendText($"{type} 다운로드 실패!\r\n{url}\r\n")));
+                log($"{type} 다운로드 실패! {ex.Message}\r\n{url}\r\n");
             }
+        }
+
+        private ImageCodecInfo GetEncoder(ImageFormat format)
+        {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
         }
 
         private void ExecuteThreads(List<Thread> threads, int batch_size, float interval)
@@ -447,25 +917,75 @@ namespace NovelpiaDownloader
             }
         }
 
-        private static string PostRequest(string url, string loginkey, string data = null)
+        private static string PostRequest(Action<string> log, string url, string loginkey, string data = null)
         {
-            var request = (HttpWebRequest)WebRequest.Create(url);
-            request.Method = "POST";
-            request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
-            request.ContentType = "application/x-www-form-urlencoded; charset=UTF-8";
-            request.Headers.Add("cookie", $"LOGINKEY={loginkey};");
-            if (!string.IsNullOrEmpty(data))
+            try
             {
-                using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+                var request = (HttpWebRequest)WebRequest.Create(url);
+                request.Method = "POST";
+                request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build=MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
+                request.ContentType = "application/x-www-form-urlencoded; charset=UTF-8";
+                request.Headers.Add("cookie", $"LOGINKEY={loginkey};");
+                if (!string.IsNullOrEmpty(data))
                 {
-                    streamWriter.Write(data);
+                    using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+                    {
+                        streamWriter.Write(data);
+                    }
+                }
+                var response = (HttpWebResponse)request.GetResponse();
+                using (var streamReader = new StreamReader(response.GetResponseStream()))
+                {
+                    return streamReader.ReadToEnd();
                 }
             }
-            var response = (HttpWebResponse)request.GetResponse();
-            using (var streamReader = new StreamReader(response.GetResponseStream()))
+            catch (WebException ex)
             {
-                return streamReader.ReadToEnd();
+                log($"Web request error for {url}: {ex.Message}\r\n");
+                if (ex.Response != null)
+                {
+                    using (var errorStream = ex.Response.GetResponseStream())
+                    using (var reader = new StreamReader(errorStream))
+                    {
+                        log($"Response: {reader.ReadToEnd()}\r\n");
+                    }
+                }
+                return null;
             }
+            catch (Exception ex)
+            {
+                log($"An unexpected error occurred in PostRequest for {url}: {ex.Message}\r\n");
+                return null;
+            }
+        }
+
+        // --- UI Event Handlers ---
+        private void DownloadButton_Click(object sender, EventArgs e)
+        {
+            bool saveAsEpub = EpubButton.Checked;
+            bool saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub; // HTML checkbox means standalone HTML if not EPUB
+
+            SaveFileDialog sfd = new SaveFileDialog
+            {
+                Filter = saveAsEpub ? "EPUB Files|*.epub" : (saveAsHtml ? "HTML Files|*.html" : "Text Files|*.txt"),
+                DefaultExt = saveAsEpub ? "epub" : (saveAsHtml ? "html" : "txt")
+            };
+
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                DownloadCore(
+                    NovelNoText.Text,
+                    saveAsEpub,
+                    saveAsHtml, // Pass new parameter
+                    sfd.FileName,
+                    FromCheck.Checked ? (int?)FromNum.Value : null,
+                    ToCheck.Checked ? (int?)ToNum.Value : null,
+                    ImageCompressCheckBox.Checked,
+                    (int)JpegQualityNum.Value,
+                    false
+                );
+            }
+            sfd.Dispose();
         }
 
         private void LoginButton1_Click(object sender, EventArgs e)
@@ -497,7 +1017,11 @@ namespace NovelpiaDownloader
                 { "email", EmailText.Text },
                 { "wd", PasswordText.Text },
                 { "loginkey", LoginkeyText.Text },
-                { "mapping_path", FontBox.Text }
+                { "mapping_path", FontBox.Text },
+                { "include_html_in_txt", HtmlCheckBox.Checked }, // This now controls 'saveAsHtml' when not EPUB
+                { "enable_image_compression", ImageCompressCheckBox.Checked },
+                { "jpeg_quality", JpegQualityNum.Value },
+                { "save_as_epub", EpubButton.Checked } // Save EpubButton state
             };
             using (StreamWriter sw = new StreamWriter("config.json"))
             {
@@ -534,6 +1058,86 @@ namespace NovelpiaDownloader
         private void ExtensionLabel_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void HtmlCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            // If HTML checkbox is checked, and EPUB is not, it implies HTML output.
+            // If EPUB is checked, HTML checkbox is irrelevant for format, but could be used for content.
+            // For simplicity, we'll make the RadioButtons (if you have them) mutually exclusive
+            // with this interpretation.
+            // If EpubButton exists and is checked, then HTML checkbox's primary role (standalone HTML) is overridden.
+            // Otherwise, it implies standalone HTML.
+            // If no radio buttons for output type, consider adding them for clearer UX.
+            // For now, let's assume EpubButton is a RadioButton for EPUB.
+        }
+
+        private void EpubButton_CheckedChanged(object sender, EventArgs e)
+        {
+            // When EpubButton is checked, HTML checkbox should not imply standalone HTML output
+            // (it still controls HTML content *within* EPUB if desired, but for this context, it's about output format)
+            // For now, this just reflects the radio button state.
+        }
+
+        private void BatchDownloadButton_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Text files|*.txt",
+                Title = "Select the Novel List File"
+            };
+
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+
+            string listFilePath = openFileDialog.FileName;
+
+            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog
+            {
+                Description = "Select the output directory for downloaded novels"
+            };
+
+            if (folderBrowserDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+
+            string outputDirectory = folderBrowserDialog.SelectedPath;
+            bool saveAsEpub = EpubButton.Checked;
+            bool saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub; // Determine batch HTML output based on UI
+
+            bool enableImageCompression = ImageCompressCheckBox.Checked;
+            int jpegQuality = (int)JpegQualityNum.Value;
+
+            Task.Run(() =>
+            {
+                BatchDownloadCore(listFilePath, outputDirectory, saveAsEpub, saveAsHtml, // Pass all determined settings
+                                  enableImageCompression, jpegQuality,
+                                  false);
+                if (ConsoleBox != null && ConsoleBox.InvokeRequired)
+                {
+                    ConsoleBox.Invoke(new Action(() => ConsoleBox.AppendText("Batch download process initiated. Check console for details.\r\n")));
+                }
+                else if (ConsoleBox != null)
+                {
+                    ConsoleBox.AppendText("Batch download process initiated. Check console for details.\r\n");
+                }
+            });
+        }
+
+        private void ImageCompressCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            JpegQualityNum.Enabled = ImageCompressCheckBox.Checked;
+            JpegQualityLabel.Enabled = ImageCompressCheckBox.Checked;
+        }
+
+        private string SanitizeFilename(string filename)
+        {
+            string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+            string invalidRegStr = string.Format(@"[{0}]", invalidChars);
+            return Regex.Replace(filename, invalidRegStr, "_");
         }
     }
 }
