@@ -1,4 +1,4 @@
-﻿namespace NovelpiaDownloader
+namespace NovelpiaDownloader
 {
     partial class MainWin
     {
@@ -39,6 +39,11 @@
             this.PasswordLabel = new System.Windows.Forms.Label();
             this.EmailLabel = new System.Windows.Forms.Label();
             this.DownloadGroup = new System.Windows.Forms.GroupBox();
+            this.JpegQualityLabel = new System.Windows.Forms.Label();
+            this.JpegQualityNum = new System.Windows.Forms.NumericUpDown();
+            this.ImageCompressCheckBox = new System.Windows.Forms.CheckBox();
+            this.HtmlCheckBox = new System.Windows.Forms.CheckBox();
+            this.BatchDownloadButton = new System.Windows.Forms.Button();
             this.ToLabel = new System.Windows.Forms.Label();
             this.ToNum = new System.Windows.Forms.NumericUpDown();
             this.ToCheck = new System.Windows.Forms.CheckBox();
@@ -62,6 +67,7 @@
             this.FontBox = new System.Windows.Forms.TextBox();
             this.LoginGroup.SuspendLayout();
             this.DownloadGroup.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.JpegQualityNum)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.ToNum)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.FromNum)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.ThreadNum)).BeginInit();
@@ -109,21 +115,21 @@
             // 
             this.LoginkeyText.Location = new System.Drawing.Point(103, 107);
             this.LoginkeyText.Name = "LoginkeyText";
-            this.LoginkeyText.Size = new System.Drawing.Size(244, 31);
+            this.LoginkeyText.Size = new System.Drawing.Size(244, 23);
             this.LoginkeyText.TabIndex = 5;
             // 
             // PasswordText
             // 
             this.PasswordText.Location = new System.Drawing.Point(103, 67);
             this.PasswordText.Name = "PasswordText";
-            this.PasswordText.Size = new System.Drawing.Size(244, 31);
+            this.PasswordText.Size = new System.Drawing.Size(244, 23);
             this.PasswordText.TabIndex = 4;
             // 
             // EmailText
             // 
             this.EmailText.Location = new System.Drawing.Point(103, 30);
             this.EmailText.Name = "EmailText";
-            this.EmailText.Size = new System.Drawing.Size(244, 31);
+            this.EmailText.Size = new System.Drawing.Size(244, 23);
             this.EmailText.TabIndex = 3;
             // 
             // LoginkeyLabel
@@ -131,7 +137,7 @@
             this.LoginkeyLabel.AutoSize = true;
             this.LoginkeyLabel.Location = new System.Drawing.Point(6, 110);
             this.LoginkeyLabel.Name = "LoginkeyLabel";
-            this.LoginkeyLabel.Size = new System.Drawing.Size(97, 25);
+            this.LoginkeyLabel.Size = new System.Drawing.Size(62, 15);
             this.LoginkeyLabel.TabIndex = 2;
             this.LoginkeyLabel.Text = "LOGINKEY";
             // 
@@ -140,7 +146,7 @@
             this.PasswordLabel.AutoSize = true;
             this.PasswordLabel.Location = new System.Drawing.Point(12, 70);
             this.PasswordLabel.Name = "PasswordLabel";
-            this.PasswordLabel.Size = new System.Drawing.Size(84, 25);
+            this.PasswordLabel.Size = new System.Drawing.Size(55, 15);
             this.PasswordLabel.TabIndex = 1;
             this.PasswordLabel.Text = "비밀번호";
             // 
@@ -149,12 +155,17 @@
             this.EmailLabel.AutoSize = true;
             this.EmailLabel.Location = new System.Drawing.Point(21, 33);
             this.EmailLabel.Name = "EmailLabel";
-            this.EmailLabel.Size = new System.Drawing.Size(66, 25);
+            this.EmailLabel.Size = new System.Drawing.Size(43, 15);
             this.EmailLabel.TabIndex = 0;
             this.EmailLabel.Text = "이메일";
             // 
             // DownloadGroup
             // 
+            this.DownloadGroup.Controls.Add(this.JpegQualityLabel);
+            this.DownloadGroup.Controls.Add(this.JpegQualityNum);
+            this.DownloadGroup.Controls.Add(this.ImageCompressCheckBox);
+            this.DownloadGroup.Controls.Add(this.HtmlCheckBox);
+            this.DownloadGroup.Controls.Add(this.BatchDownloadButton);
             this.DownloadGroup.Controls.Add(this.ToLabel);
             this.DownloadGroup.Controls.Add(this.ToNum);
             this.DownloadGroup.Controls.Add(this.ToCheck);
@@ -169,10 +180,58 @@
             this.DownloadGroup.Controls.Add(this.NovelNoLable);
             this.DownloadGroup.Location = new System.Drawing.Point(13, 251);
             this.DownloadGroup.Name = "DownloadGroup";
-            this.DownloadGroup.Size = new System.Drawing.Size(439, 152);
+            this.DownloadGroup.Size = new System.Drawing.Size(439, 295);
             this.DownloadGroup.TabIndex = 1;
             this.DownloadGroup.TabStop = false;
             this.DownloadGroup.Text = "다운로드";
+            // 
+            // JpegQualityLabel
+            // 
+            this.JpegQualityLabel.AutoSize = true;
+            this.JpegQualityLabel.Location = new System.Drawing.Point(153, 176);
+            this.JpegQualityLabel.Name = "JpegQualityLabel";
+            this.JpegQualityLabel.Size = new System.Drawing.Size(45, 15);
+            this.JpegQualityLabel.TabIndex = 22;
+            this.JpegQualityLabel.Text = "Quality";
+            // 
+            // JpegQualityNum
+            // 
+            this.JpegQualityNum.Location = new System.Drawing.Point(204, 171);
+            this.JpegQualityNum.Name = "JpegQualityNum";
+            this.JpegQualityNum.Size = new System.Drawing.Size(120, 23);
+            this.JpegQualityNum.TabIndex = 21;
+            // 
+            // ImageCompressCheckBox
+            // 
+            this.ImageCompressCheckBox.AutoSize = true;
+            this.ImageCompressCheckBox.Location = new System.Drawing.Point(14, 172);
+            this.ImageCompressCheckBox.Name = "ImageCompressCheckBox";
+            this.ImageCompressCheckBox.Size = new System.Drawing.Size(121, 19);
+            this.ImageCompressCheckBox.TabIndex = 20;
+            this.ImageCompressCheckBox.Text = "Compress Images";
+            this.ImageCompressCheckBox.UseVisualStyleBackColor = true;
+            this.ImageCompressCheckBox.CheckedChanged += new System.EventHandler(this.ImageCompressCheckBox_CheckedChanged);
+            // 
+            // HtmlCheckBox
+            // 
+            this.HtmlCheckBox.AutoSize = true;
+            this.HtmlCheckBox.Location = new System.Drawing.Point(249, 129);
+            this.HtmlCheckBox.Name = "HtmlCheckBox";
+            this.HtmlCheckBox.Size = new System.Drawing.Size(58, 19);
+            this.HtmlCheckBox.TabIndex = 19;
+            this.HtmlCheckBox.Text = "HTML";
+            this.HtmlCheckBox.UseVisualStyleBackColor = true;
+            this.HtmlCheckBox.CheckedChanged += new System.EventHandler(this.HtmlCheckBox_CheckedChanged);
+            // 
+            // BatchDownloadButton
+            // 
+            this.BatchDownloadButton.Location = new System.Drawing.Point(5, 266);
+            this.BatchDownloadButton.Name = "BatchDownloadButton";
+            this.BatchDownloadButton.Size = new System.Drawing.Size(194, 23);
+            this.BatchDownloadButton.TabIndex = 18;
+            this.BatchDownloadButton.Text = "목록 다운로드";
+            this.BatchDownloadButton.UseVisualStyleBackColor = true;
+            this.BatchDownloadButton.Click += new System.EventHandler(this.BatchDownloadButton_Click);
             // 
             // ToLabel
             // 
@@ -180,7 +239,7 @@
             this.ToLabel.Enabled = false;
             this.ToLabel.Location = new System.Drawing.Point(352, 33);
             this.ToLabel.Name = "ToLabel";
-            this.ToLabel.Size = new System.Drawing.Size(66, 25);
+            this.ToLabel.Size = new System.Drawing.Size(43, 15);
             this.ToLabel.TabIndex = 16;
             this.ToLabel.Text = "장까지";
             // 
@@ -199,7 +258,7 @@
             0,
             0});
             this.ToNum.Name = "ToNum";
-            this.ToNum.Size = new System.Drawing.Size(69, 31);
+            this.ToNum.Size = new System.Drawing.Size(69, 23);
             this.ToNum.TabIndex = 15;
             this.ToNum.Value = new decimal(new int[] {
             1,
@@ -212,7 +271,7 @@
             this.ToCheck.AutoSize = true;
             this.ToCheck.Location = new System.Drawing.Point(249, 35);
             this.ToCheck.Name = "ToCheck";
-            this.ToCheck.Size = new System.Drawing.Size(22, 21);
+            this.ToCheck.Size = new System.Drawing.Size(15, 14);
             this.ToCheck.TabIndex = 14;
             this.ToCheck.UseVisualStyleBackColor = true;
             this.ToCheck.CheckedChanged += new System.EventHandler(this.ToCheck_CheckedChanged);
@@ -223,7 +282,7 @@
             this.FromLabel.Enabled = false;
             this.FromLabel.Location = new System.Drawing.Point(128, 33);
             this.FromLabel.Name = "FromLabel";
-            this.FromLabel.Size = new System.Drawing.Size(66, 25);
+            this.FromLabel.Size = new System.Drawing.Size(43, 15);
             this.FromLabel.TabIndex = 13;
             this.FromLabel.Text = "장부터";
             // 
@@ -242,7 +301,7 @@
             0,
             0});
             this.FromNum.Name = "FromNum";
-            this.FromNum.Size = new System.Drawing.Size(69, 31);
+            this.FromNum.Size = new System.Drawing.Size(69, 23);
             this.FromNum.TabIndex = 12;
             this.FromNum.Value = new decimal(new int[] {
             1,
@@ -255,7 +314,7 @@
             this.FromCheck.AutoSize = true;
             this.FromCheck.Location = new System.Drawing.Point(25, 35);
             this.FromCheck.Name = "FromCheck";
-            this.FromCheck.Size = new System.Drawing.Size(22, 21);
+            this.FromCheck.Size = new System.Drawing.Size(15, 14);
             this.FromCheck.TabIndex = 11;
             this.FromCheck.UseVisualStyleBackColor = true;
             this.FromCheck.CheckedChanged += new System.EventHandler(this.FromCheck_CheckedChanged);
@@ -275,7 +334,7 @@
             this.TxtButton.AutoSize = true;
             this.TxtButton.Location = new System.Drawing.Point(249, 104);
             this.TxtButton.Name = "TxtButton";
-            this.TxtButton.Size = new System.Drawing.Size(68, 29);
+            this.TxtButton.Size = new System.Drawing.Size(44, 19);
             this.TxtButton.TabIndex = 8;
             this.TxtButton.Text = "TXT";
             this.TxtButton.UseVisualStyleBackColor = true;
@@ -286,7 +345,7 @@
             this.EpubButton.Checked = true;
             this.EpubButton.Location = new System.Drawing.Point(120, 104);
             this.EpubButton.Name = "EpubButton";
-            this.EpubButton.Size = new System.Drawing.Size(80, 29);
+            this.EpubButton.Size = new System.Drawing.Size(53, 19);
             this.EpubButton.TabIndex = 7;
             this.EpubButton.TabStop = true;
             this.EpubButton.Text = "EPUB";
@@ -296,7 +355,7 @@
             // 
             this.NovelNoText.Location = new System.Drawing.Point(102, 67);
             this.NovelNoText.Name = "NovelNoText";
-            this.NovelNoText.Size = new System.Drawing.Size(244, 31);
+            this.NovelNoText.Size = new System.Drawing.Size(244, 23);
             this.NovelNoText.TabIndex = 6;
             // 
             // ExtensionLabel
@@ -304,28 +363,29 @@
             this.ExtensionLabel.AutoSize = true;
             this.ExtensionLabel.Location = new System.Drawing.Point(20, 106);
             this.ExtensionLabel.Name = "ExtensionLabel";
-            this.ExtensionLabel.Size = new System.Drawing.Size(66, 25);
+            this.ExtensionLabel.Size = new System.Drawing.Size(43, 15);
             this.ExtensionLabel.TabIndex = 1;
             this.ExtensionLabel.Text = "확장자";
+            this.ExtensionLabel.Click += new System.EventHandler(this.ExtensionLabel_Click);
             // 
             // NovelNoLable
             // 
             this.NovelNoLable.AutoSize = true;
             this.NovelNoLable.Location = new System.Drawing.Point(11, 70);
             this.NovelNoLable.Name = "NovelNoLable";
-            this.NovelNoLable.Size = new System.Drawing.Size(84, 25);
+            this.NovelNoLable.Size = new System.Drawing.Size(55, 15);
             this.NovelNoLable.TabIndex = 0;
             this.NovelNoLable.Text = "소설번호";
             // 
             // ConsoleBox
             // 
-            this.ConsoleBox.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.ConsoleBox.Font = new System.Drawing.Font("Microsoft YaHei", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.ConsoleBox.Location = new System.Drawing.Point(458, 23);
             this.ConsoleBox.Multiline = true;
             this.ConsoleBox.Name = "ConsoleBox";
             this.ConsoleBox.ReadOnly = true;
             this.ConsoleBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.ConsoleBox.Size = new System.Drawing.Size(420, 380);
+            this.ConsoleBox.Size = new System.Drawing.Size(420, 523);
             this.ConsoleBox.TabIndex = 5;
             // 
             // ThreadLabel
@@ -333,7 +393,7 @@
             this.ThreadLabel.AutoSize = true;
             this.ThreadLabel.Location = new System.Drawing.Point(18, 223);
             this.ThreadLabel.Name = "ThreadLabel";
-            this.ThreadLabel.Size = new System.Drawing.Size(108, 25);
+            this.ThreadLabel.Size = new System.Drawing.Size(71, 15);
             this.ThreadLabel.TabIndex = 11;
             this.ThreadLabel.Text = "스레드 개수";
             // 
@@ -346,7 +406,7 @@
             0,
             0});
             this.ThreadNum.Name = "ThreadNum";
-            this.ThreadNum.Size = new System.Drawing.Size(82, 31);
+            this.ThreadNum.Size = new System.Drawing.Size(82, 23);
             this.ThreadNum.TabIndex = 12;
             this.ThreadNum.Value = new decimal(new int[] {
             1,
@@ -359,7 +419,7 @@
             this.IntervalLabel.AutoSize = true;
             this.IntervalLabel.Location = new System.Drawing.Point(268, 223);
             this.IntervalLabel.Name = "IntervalLabel";
-            this.IntervalLabel.Size = new System.Drawing.Size(48, 25);
+            this.IntervalLabel.Size = new System.Drawing.Size(31, 15);
             this.IntervalLabel.TabIndex = 13;
             this.IntervalLabel.Text = "간격";
             // 
@@ -368,7 +428,7 @@
             this.SecondLabel.AutoSize = true;
             this.SecondLabel.Location = new System.Drawing.Point(410, 223);
             this.SecondLabel.Name = "SecondLabel";
-            this.SecondLabel.Size = new System.Drawing.Size(30, 25);
+            this.SecondLabel.Size = new System.Drawing.Size(19, 15);
             this.SecondLabel.TabIndex = 14;
             this.SecondLabel.Text = "초";
             // 
@@ -387,7 +447,7 @@
             0,
             0});
             this.IntervalNum.Name = "IntervalNum";
-            this.IntervalNum.Size = new System.Drawing.Size(82, 31);
+            this.IntervalNum.Size = new System.Drawing.Size(82, 23);
             this.IntervalNum.TabIndex = 15;
             // 
             // FontLabel
@@ -395,7 +455,7 @@
             this.FontLabel.AutoSize = true;
             this.FontLabel.Location = new System.Drawing.Point(19, 183);
             this.FontLabel.Name = "FontLabel";
-            this.FontLabel.Size = new System.Drawing.Size(90, 25);
+            this.FontLabel.Size = new System.Drawing.Size(59, 15);
             this.FontLabel.TabIndex = 16;
             this.FontLabel.Text = "폰트 매핑";
             // 
@@ -413,15 +473,15 @@
             // 
             this.FontBox.Location = new System.Drawing.Point(115, 180);
             this.FontBox.Name = "FontBox";
-            this.FontBox.Size = new System.Drawing.Size(244, 31);
+            this.FontBox.Size = new System.Drawing.Size(244, 23);
             this.FontBox.TabIndex = 8;
             this.FontBox.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FontBox_KeyPress);
             // 
             // MainWin
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(890, 424);
+            this.ClientSize = new System.Drawing.Size(890, 558);
             this.Controls.Add(this.FontButton);
             this.Controls.Add(this.FontLabel);
             this.Controls.Add(this.FontBox);
@@ -446,6 +506,7 @@
             this.LoginGroup.PerformLayout();
             this.DownloadGroup.ResumeLayout(false);
             this.DownloadGroup.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.JpegQualityNum)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.ToNum)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.FromNum)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.ThreadNum)).EndInit();
@@ -488,6 +549,11 @@
         private System.Windows.Forms.Label FontLabel;
         private System.Windows.Forms.Button FontButton;
         private System.Windows.Forms.TextBox FontBox;
+        private System.Windows.Forms.Button BatchDownloadButton;
+        private System.Windows.Forms.CheckBox HtmlCheckBox;
+        private System.Windows.Forms.CheckBox ImageCompressCheckBox;
+        private System.Windows.Forms.Label JpegQualityLabel;
+        private System.Windows.Forms.NumericUpDown JpegQualityNum;
     }
 }
 
