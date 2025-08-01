@@ -2,8 +2,26 @@ A fork of CjangCjengh's NovelpiaDownloader that grabs tags, author name, synopsi
 
 <BR>
 
-And now with support for [Novelpia Library Manager](https://github.com/SpazzTL/Novelpia-Library-Manager) for bulk (re)downloading
+#Usage
+Requires a LOGINKEY to download paid chapters, you can get your LOGINKEY by logging in to your novelpia account in a web browser, hitting f12, going to storage tab and copying it. \
+Higher thread counts and lower intervals can allow you to download faster, with a greater risk of IP BAN \
+<img width="431" height="30" alt="image" src="https://github.com/user-attachments/assets/c9d25fb9-b6b1-4122-8e89-99370c1a7bc7" />
 
+
+# Space Saving
+##  Image Compression
+ Set to 80% for no noticeable quality difference, large savings (1mb -> 65KB).\
+ Set to 50% for little difference, massive savings (1mb -> 30KB).\
+ Set to 10-30% for noticable difference, extreme savings (1mb -> >10KB) \
+
+<br>
+Difference between uncompressed and 10% quality compressed 
+<img width="1134" height="658" alt="image" src="https://github.com/user-attachments/assets/09161c74-92d8-4b3e-8e72-8ac574db719d" />
+
+## Calibre
+By using the Calibre epub editor, converting to .epub and saving the new .epub you can shave off an additional 10-50%.\
+Calibre achieves this by optimizing css, html, and embedding fonts. \
+I can not currently implement any of those spacing saving features, and I dont plan to due to difficulty. \
 
 # NovelpiaDownloader Command-Line Arguments
 
