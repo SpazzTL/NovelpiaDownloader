@@ -12,8 +12,6 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
-using System.Drawing; // Added for Image processing
-using System.Drawing.Imaging; // Added for ImageFormat and Encoder
 using SkiaSharp;
 
 namespace NovelpiaDownloader
@@ -27,11 +25,10 @@ namespace NovelpiaDownloader
 
         public MainWin(string[] args)
         {
-            InitializeComponent(); // Initialize UI components first
+            InitializeComponent();
 
-            novelpia = new Novelpia(); // Initialize novelpia after components
+            novelpia = new Novelpia();
 
-            // Load existing configuration, including authentication details
             if (File.Exists("config.json"))
             {
                 var config_dict = new JavaScriptSerializer().Deserialize<Dictionary<string, dynamic>>(File.ReadAllText("config.json"));
@@ -53,25 +50,23 @@ namespace NovelpiaDownloader
                     }
                 if (config_dict.ContainsKey("loginkey"))
                     novelpia.loginkey = LoginkeyText.Text = config_dict["loginkey"];
-                if (config_dict.ContainsKey("include_html_in_txt")) // This now controls 'saveAsHtml' if not EPUB
+                if (config_dict.ContainsKey("include_html_in_txt"))
                     HtmlCheckBox.Checked = config_dict["include_html_in_txt"];
-                // Load compression settings
                 if (config_dict.ContainsKey("enable_image_compression"))
                     ImageCompressCheckBox.Checked = config_dict["enable_image_compression"];
                 if (config_dict.ContainsKey("jpeg_quality"))
                     JpegQualityNum.Value = config_dict["jpeg_quality"];
-                if (config_dict.ContainsKey("save_as_epub")) // Load EpubButton state for UI
+                if (config_dict.ContainsKey("save_as_epub"))
                     EpubButton.Checked = config_dict["save_as_epub"];
             }
 
-            // Apply parsed arguments to UI controls if running in UI mode
             if (args != null && args.Length > 0)
             {
                 string novelIdArg = null;
                 int? fromChapterArg = null;
                 int? toChapterArg = null;
-                bool saveAsEpubArg = false; // Default to false
-                bool saveAsHtmlArg = false; // New argument for headless HTML
+                bool saveAsEpubArg = false;
+                bool saveAsHtmlArg = false;
                 bool enableImageCompressionArg = false;
                 int? jpegQualityArg = null;
 
@@ -88,10 +83,10 @@ namespace NovelpiaDownloader
                         case "-to":
                             if (i + 1 < args.Length && int.TryParse(args[++i], out int toVal)) toChapterArg = toVal;
                             break;
-                        case "-epub": // New argument to explicitly set EPUB
+                        case "-epub":
                             saveAsEpubArg = true;
                             break;
-                        case "-html": // New argument to explicitly set HTML output
+                        case "-html":
                             saveAsHtmlArg = true;
                             break;
                         case "-compressimages":
@@ -126,9 +121,8 @@ namespace NovelpiaDownloader
                 }
                 if (EpubButton != null && saveAsEpubArg)
                 {
-                    EpubButton.Checked = true; // Set EPUB if argument is present
+                    EpubButton.Checked = true;
                 }
-                // HTML checkbox now defaults to true if -html is passed and not -epub
                 if (HtmlCheckBox != null && saveAsHtmlArg && !EpubButton.Checked)
                 {
                     HtmlCheckBox.Checked = true;
@@ -144,23 +138,10 @@ namespace NovelpiaDownloader
             }
         }
 
-        /// <summary>
-        /// Core download logic for a single novel, used by both UI and headless modes.
-        /// </summary>
-        /// <param name="novelNo">The ID of the novel to download.</param>
-        /// <param name="saveAsEpub">True to save as EPUB.</param>
-        /// <param name="saveAsHtml">True to save as standalone HTML (if not saving as EPUB).</param>
-        /// <param name="path">The full output path including filename (e.g., C:\novel.txt or C:\novel.epub).</param>
-        /// <param name="fromChapter">Optional: Starting chapter number (1-indexed).</param>
-        /// <param name="toChapter">Optional: Ending chapter number (1-indexed).</param>
-        /// <param name="enableImageCompression">True to enable image compression.</param>
-        /// <param name="jpegQuality">JPEG quality percentage (0-100) if compression is enabled.</param>
-        /// <param name="isHeadless">True if running in headless mode (logs to Console), false for UI mode (logs to ConsoleBox).</param>
-        /// <returns>A Task representing the asynchronous download operation.</returns>
         public Task DownloadCore(
             string novelNo,
             bool saveAsEpub,
-            bool saveAsHtml, // New parameter for standalone HTML output
+            bool saveAsHtml,
             string path,
             int? fromChapter = null,
             int? toChapter = null,
@@ -195,17 +176,15 @@ namespace NovelpiaDownloader
 
                 int thread_num = 1;
                 float interval = 0.5f;
-                if (!isHeadless) // Only get UI values if not headless
+                if (!isHeadless)
                 {
                     if (ThreadNum != null) thread_num = (int)ThreadNum.Value;
                     if (IntervalNum != null) interval = (float)IntervalNum.Value;
                     if (ImageCompressCheckBox != null) enableImageCompression = ImageCompressCheckBox.Checked;
                     if (JpegQualityNum != null) jpegQuality = (int)JpegQualityNum.Value;
-                    // For UI mode, ensure saveAsEpub and saveAsHtml reflect UI choices
                     saveAsEpub = EpubButton.Checked;
-                    saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub; // HTML checkbox now means standalone HTML if not EPUB
+                    saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub;
                 }
-
 
                 int from = fromChapter.HasValue ? fromChapter.Value - 1 : 0;
                 int to = toChapter.HasValue ? toChapter.Value : int.MaxValue;
@@ -259,7 +238,6 @@ namespace NovelpiaDownloader
                 ExecuteThreads(threads, thread_num, interval);
                 threads.Clear();
 
-                // Determine output format
                 string finalFileExtension;
                 if (saveAsEpub)
                 {
@@ -278,7 +256,6 @@ namespace NovelpiaDownloader
                 if (File.Exists(outputPath))
                     File.Delete(outputPath);
 
-                // Common logic for retrieving novel metadata (used by all formats)
                 string responseText;
                 var request = (HttpWebRequest)WebRequest.Create($"https://novelpia.com/novel/{novelNo}");
                 request.Method = "GET";
@@ -329,7 +306,6 @@ namespace NovelpiaDownloader
                     cover_url = coverUrlMatch.Groups[1].Value;
                 }
 
-                // Process based on chosen format
                 if (saveAsEpub)
                 {
                     Directory.CreateDirectory(Path.Combine(directory, "META-INF"));
@@ -506,21 +482,19 @@ namespace NovelpiaDownloader
 
                     ZipFile.CreateFromDirectory(directory, outputPath);
                 }
-                else if (saveAsHtml) // New HTML output format
+                else if (saveAsHtml)
                 {
-                    Directory.CreateDirectory(Path.Combine(directory, "Images")); // Images go into a subdirectory for HTML
-                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"Images/cover.jpg"), "커버", SKEncodedImageFormat.Jpeg)); // Save cover for HTML
+                    Directory.CreateDirectory(Path.Combine(directory, "Images"));
+                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"Images/cover.jpg"), "커버", SKEncodedImageFormat.Jpeg));
 
                     using (var file = new StreamWriter(outputPath, false, Encoding.UTF8))
                     {
-                        // Write HTML header
                         file.Write("<!DOCTYPE html>\n<html lang=\"ko\">\n<head>\n<meta charset=\"UTF-8\">\n");
                         file.Write($"<title>{HttpUtility.HtmlEncode(title)}</title>\n");
                         file.Write("<style>\nbody { font-family: sans-serif; line-height: 1.6; margin: 20px; }\n");
                         file.Write("h1, h2 { color: #333; }\nimg { max-width: 100%; height: auto; display: block; margin: 10px auto; }\n");
                         file.Write("</style>\n</head>\n<body>\n");
 
-                        // Add metadata to the HTML file
                         file.Write($"<h1>{HttpUtility.HtmlEncode(title)}</h1>\n");
                         file.Write($"<p><strong>Author:</strong> {HttpUtility.HtmlEncode(author)}</p>\n");
                         if (tags.Count > 0)
@@ -536,12 +510,12 @@ namespace NovelpiaDownloader
                         file.Write($"<h2>Synopsis</h2>\n");
                         file.Write($"{synopsis}\n");
                         file.Write("<p>&nbsp;</p>\n");
-                        file.Write($"<p><img src=\"{novelNo}/Images/cover.jpg\" alt=\"Cover\"></p>\n"); // Reference cover image
+                        file.Write($"<p><img src=\"{novelNo}/Images/cover.jpg\" alt=\"Cover\"></p>\n");
 
                         var serializer = new JavaScriptSerializer();
                         foreach (var chapterInfo in chapterNames)
                         {
-                            file.Write($"<h2>{chapterInfo.Item1}</h2>\n"); // Chapter title
+                            file.Write($"<h2>{chapterInfo.Item1}</h2>\n");
                             file.Write("<p>&nbsp;</p>\n");
 
                             if (!File.Exists(chapterInfo.Item2))
@@ -563,7 +537,6 @@ namespace NovelpiaDownloader
                                         {
                                             string url = imgMatch.Groups[1].Value;
                                             string imageFilename = $"{currentImageCounter}.webp";
-                                            // Image path relative to the HTML file's directory
                                             imageDownloadInfos.Add((url, Path.Combine(directory, $"Images/{imageFilename}"), "삽화", SKEncodedImageFormat.Webp));
                                             textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
                                                 $"<img alt=\"{currentImageCounter}\" src=\"{novelNo}/Images/{imageFilename}\" width=\"100%\"/>");
@@ -607,7 +580,7 @@ namespace NovelpiaDownloader
                                     }
                                 }
                             }
-                            File.Delete(chapterInfo.Item2); // Delete temporary JSON chapter file
+                            File.Delete(chapterInfo.Item2);
                         }
                         file.Write("</body>\n</html>\n");
                     }
@@ -618,9 +591,8 @@ namespace NovelpiaDownloader
                         imageThreads.Add(new Thread(() => DownloadImage(log, imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality, imgInfo.format)));
                     }
                     ExecuteThreads(imageThreads, thread_num, interval);
-
                 }
-                else // Save as plain .txt (default if not EPUB and not HTML)
+                else
                 {
                     using (var file = new StreamWriter(outputPath, false, Encoding.UTF8))
                     {
@@ -628,7 +600,7 @@ namespace NovelpiaDownloader
 
                         foreach (var chapterInfo in chapterNames)
                         {
-                            file.Write($"{chapterInfo.Item1}\n\n"); // Chapter title
+                            file.Write($"{chapterInfo.Item1}\n\n");
 
                             if (!File.Exists(chapterInfo.Item2))
                                 continue;
@@ -643,7 +615,6 @@ namespace NovelpiaDownloader
 
                                     textStr = HttpUtility.HtmlDecode(textStr);
 
-                                    // Replace images with a placeholder in plain text
                                     textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>", "[Image Inserted]\r\n");
 
                                     textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
@@ -655,17 +626,16 @@ namespace NovelpiaDownloader
                                     }
                                     else
                                     {
-                                        string plainText = Regex.Replace(textStr, "<[^>]*>", ""); // Remove all HTML tags
-                                        plainText = HttpUtility.HtmlDecode(plainText); // Decode HTML entities
+                                        string plainText = Regex.Replace(textStr, "<[^>]*>", "");
+                                        plainText = HttpUtility.HtmlDecode(plainText);
                                         file.Write($"{plainText.Trim()}\n");
                                     }
                                 }
                             }
-                            file.Write("\n"); // Add an extra newline between chapters
-                            File.Delete(chapterInfo.Item2); // Delete temporary JSON chapter file
+                            file.Write("\n");
+                            File.Delete(chapterInfo.Item2);
                         }
                     }
-                    // No images downloaded for plain text, so no image threads needed here.
                 }
 
                 try
@@ -687,17 +657,7 @@ namespace NovelpiaDownloader
             return downloadTask;
         }
 
-        /// <summary>
-        /// Core batch download logic, used by both UI and headless modes.
-        /// </summary>
-        /// <param name="listFilePath">Path to the text file containing novel titles and IDs.</param>
-        /// <param name="outputDirectory">Directory where downloaded novels will be saved.</param>
-        /// <param name="saveAsEpub">True to save as EPUB.</param>
-        /// <param name="saveAsHtml">True to save as standalone HTML (if not saving as EPUB).</param>
-        /// <param name="enableImageCompression">True to enable image compression.</param>
-        /// <param name="jpegQuality">JPEG quality percentage (0-100) if compression is enabled.</param>
-        /// <param name="isHeadless">True if running in headless mode (logs to Console), false for UI mode (logs to ConsoleBox).</param>
-        public void BatchDownloadCore(string listFilePath, string outputDirectory, bool saveAsEpub, bool saveAsHtml, // Updated parameters
+        public void BatchDownloadCore(string listFilePath, string outputDirectory, bool saveAsEpub, bool saveAsHtml,
                                       bool enableImageCompression = false, int jpegQuality = 80,
                                       bool isHeadless = false)
         {
@@ -737,7 +697,6 @@ namespace NovelpiaDownloader
 
                     string[] lines = File.ReadAllLines(listFilePath);
 
-                    // Process novels one by one to avoid rate-limiting.
                     foreach (string line in lines)
                     {
                         string trimmedLine = line.Trim();
@@ -774,7 +733,6 @@ namespace NovelpiaDownloader
 
                             try
                             {
-                                // Call DownloadCore and wait for it to complete before starting the next one.
                                 Task novelDownloadTask = DownloadCore(
                                     novelId,
                                     saveAsEpub,
@@ -786,14 +744,13 @@ namespace NovelpiaDownloader
                                     jpegQuality,
                                     isHeadless
                                 );
-                                novelDownloadTask.Wait(); // Wait for the current novel to finish.
+                                novelDownloadTask.Wait();
 
                                 log($"Finished downloading '{title}'.\r\n");
-                                Thread.Sleep(2000); // A short pause between novels is still good practice.
+                                Thread.Sleep(2000);
                             }
                             catch (Exception ex)
                             {
-                                // Log the error for the specific novel and continue with the batch.
                                 log($"An error occurred while downloading '{title}' (ID: {novelId}). Moving to next novel. Error: {ex.Message}\r\n");
                             }
                         }
@@ -806,7 +763,6 @@ namespace NovelpiaDownloader
                 }
                 catch (Exception ex)
                 {
-                    // This will catch errors related to file reading or other unexpected issues.
                     log($"A critical error occurred during the batch download process: {ex.Message}\r\n");
                 }
             });
@@ -846,13 +802,11 @@ namespace NovelpiaDownloader
                     Directory.CreateDirectory(directory);
                 }
 
-                // Use a MemoryStream to handle the image data, which is more memory-efficient
                 using (var downloader = new WebClient())
                 using (var imageStream = new MemoryStream(downloader.DownloadData(url)))
                 {
                     if (enableCompression && jpegQuality >= 0 && jpegQuality <= 100)
                     {
-                        // Decode the image directly from the stream
                         using (var originalBitmap = SKBitmap.Decode(imageStream))
                         {
                             if (originalBitmap == null)
@@ -861,10 +815,8 @@ namespace NovelpiaDownloader
                                 return;
                             }
 
-                            // Create a SkiaSharp image from the bitmap
                             using (var originalImage = SKImage.FromBitmap(originalBitmap))
                             {
-                                // Use SKImage.Encode to save with the specified quality and format
                                 using (var encodedData = originalImage.Encode(format, jpegQuality))
                                 {
                                     if (encodedData == null)
@@ -872,7 +824,6 @@ namespace NovelpiaDownloader
                                         log($"{type} 다운로드 실패! SkiaSharp could not encode the image to {format}.\r\n");
                                         return;
                                     }
-                                    // Save the encoded data to the file
                                     File.WriteAllBytes(path, encodedData.ToArray());
                                     log($"{type} (압축됨, 품질: {jpegQuality}%, 형식: {format}) 다운로드 완료!\r\n");
                                 }
@@ -881,7 +832,6 @@ namespace NovelpiaDownloader
                     }
                     else
                     {
-                        // If not compressing, simply write the stream data to the file
                         File.WriteAllBytes(path, imageStream.ToArray());
                         log($"{type} 다운로드 완료!\r\n");
                     }
@@ -949,11 +899,10 @@ namespace NovelpiaDownloader
             }
         }
 
-        // --- UI Event Handlers ---
         private void DownloadButton_Click(object sender, EventArgs e)
         {
             bool saveAsEpub = EpubButton.Checked;
-            bool saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub; // HTML checkbox means standalone HTML if not EPUB
+            bool saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub;
 
             SaveFileDialog sfd = new SaveFileDialog
             {
@@ -966,7 +915,7 @@ namespace NovelpiaDownloader
                 DownloadCore(
                     NovelNoText.Text,
                     saveAsEpub,
-                    saveAsHtml, // Pass new parameter
+                    saveAsHtml,
                     sfd.FileName,
                     FromCheck.Checked ? (int?)FromNum.Value : null,
                     ToCheck.Checked ? (int?)ToNum.Value : null,
@@ -1008,10 +957,10 @@ namespace NovelpiaDownloader
                 { "wd", PasswordText.Text },
                 { "loginkey", LoginkeyText.Text },
                 { "mapping_path", FontBox.Text },
-                { "include_html_in_txt", HtmlCheckBox.Checked }, // This now controls 'saveAsHtml' when not EPUB
+                { "include_html_in_txt", HtmlCheckBox.Checked },
                 { "enable_image_compression", ImageCompressCheckBox.Checked },
                 { "jpeg_quality", JpegQualityNum.Value },
-                { "save_as_epub", EpubButton.Checked } // Save EpubButton state
+                { "save_as_epub", EpubButton.Checked }
             };
             using (StreamWriter sw = new StreamWriter("config.json"))
             {
@@ -1052,21 +1001,10 @@ namespace NovelpiaDownloader
 
         private void HtmlCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            // If HTML checkbox is checked, and EPUB is not, it implies HTML output.
-            // If EPUB is checked, HTML checkbox is irrelevant for format, but could be used for content.
-            // For simplicity, we'll make the RadioButtons (if you have them) mutually exclusive
-            // with this interpretation.
-            // If EpubButton exists and is checked, then HTML checkbox's primary role (standalone HTML) is overridden.
-            // Otherwise, it implies standalone HTML.
-            // If no radio buttons for output type, consider adding them for clearer UX.
-            // For now, let's assume EpubButton is a RadioButton for EPUB.
         }
 
         private void EpubButton_CheckedChanged(object sender, EventArgs e)
         {
-            // When EpubButton is checked, HTML checkbox should not imply standalone HTML output
-            // (it still controls HTML content *within* EPUB if desired, but for this context, it's about output format)
-            // For now, this just reflects the radio button state.
         }
 
         private void BatchDownloadButton_Click(object sender, EventArgs e)
@@ -1096,14 +1034,14 @@ namespace NovelpiaDownloader
 
             string outputDirectory = folderBrowserDialog.SelectedPath;
             bool saveAsEpub = EpubButton.Checked;
-            bool saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub; // Determine batch HTML output based on UI
+            bool saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub;
 
             bool enableImageCompression = ImageCompressCheckBox.Checked;
             int jpegQuality = (int)JpegQualityNum.Value;
 
             Task.Run(() =>
             {
-                BatchDownloadCore(listFilePath, outputDirectory, saveAsEpub, saveAsHtml, // Pass all determined settings
+                BatchDownloadCore(listFilePath, outputDirectory, saveAsEpub, saveAsHtml,
                                   enableImageCompression, jpegQuality,
                                   false);
                 if (ConsoleBox != null && ConsoleBox.InvokeRequired)
@@ -1132,21 +1070,11 @@ namespace NovelpiaDownloader
 
         private string MinifyCss(string css)
         {
-            // Remove comments
             css = Regex.Replace(css, @"/\*[\s\S]*?\*/", string.Empty);
-            // Collapse multiple whitespaces
             css = Regex.Replace(css, @"\s+", " ");
-            // Remove space around symbols
             css = Regex.Replace(css, @"\s*([{}:;,])\s*", "$1");
-            // Trim leading/trailing space
             return css.Trim();
         }
 
     }
 }
-
-
-
-
-
-
