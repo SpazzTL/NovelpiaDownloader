@@ -2,7 +2,7 @@ A fork of CjangCjengh's NovelpiaDownloader that grabs tags, author name, synopsi
 
 <BR>
 
-#Usage
+# Usage
 Requires a LOGINKEY to download paid chapters, you can get your LOGINKEY by logging in to your novelpia account in a web browser, hitting f12, going to storage tab and copying it. \
 Higher thread counts and lower intervals can allow you to download faster, with a greater risk of IP BAN \
 <img width="431" height="30" alt="image" src="https://github.com/user-attachments/assets/c9d25fb9-b6b1-4122-8e89-99370c1a7bc7" />
