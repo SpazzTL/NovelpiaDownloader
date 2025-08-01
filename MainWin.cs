@@ -217,7 +217,7 @@ namespace NovelpiaDownloader
                 List<Thread> threads = new List<Thread>();
                 bool get_content = true;
 
-                var imageDownloadInfos = new List<(string url, string localPath, string type)>();
+                var imageDownloadInfos = new List<(string url, string localPath, string type, SKEncodedImageFormat format)>();
                 int currentImageCounter = 1;
 
                 while (get_content)
@@ -346,7 +346,7 @@ namespace NovelpiaDownloader
                     using (var file = new StreamWriter(Path.Combine(directory, "OEBPS/Styles/Stylesheet.css"), false))
                         file.Write(EpubTemplate.stylesheet);
 
-                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"OEBPS/Images/cover.webp"), "커버"));
+                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"OEBPS/Images/cover.jpg"), "커버", SKEncodedImageFormat.Jpeg));
 
                     using (var file = new StreamWriter(Path.Combine(directory, "OEBPS/toc.ncx"), false))
                     {
@@ -412,7 +412,7 @@ namespace NovelpiaDownloader
                                         {
                                             string url = imgMatch.Groups[1].Value;
                                             string imageFilename = $"{currentImageCounter}.webp";
-                                            imageDownloadInfos.Add((url, Path.Combine(directory, $"OEBPS/Images/{imageFilename}"), "삽화"));
+                                            imageDownloadInfos.Add((url, Path.Combine(directory, $"OEBPS/Images/{imageFilename}"), "삽화", SKEncodedImageFormat.Webp));
                                             textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
                                                 $"<img alt=\"{currentImageCounter}\" src=\"../Images/{imageFilename}\" width=\"100%\"/>");
                                             currentImageCounter++;
@@ -475,7 +475,7 @@ namespace NovelpiaDownloader
                         }
                         file.Write(EpubTemplate.content2);
                         file.Write("<item id=\"cover.html\" href=\"Text/cover.html\" media-type=\"application/xhtml+xml\"/>\n");
-                        file.Write("<item id=\"cover-image\" href=\"Images/cover.webp\" media-type=\"image/webp\" properties=\"cover-image\"/>\n");
+                        file.Write("<item id=\"cover-image\" href=\"Images/cover.jpg\" media-type=\"image/jpeg\" properties=\"cover-image\"/>\n");
                         for (int i = 0; i < chapterNames.Count; i++)
                         {
                             string temp = Path.ChangeExtension(Path.GetFileName(chapterNames[i].Item2), "html");
@@ -499,7 +499,7 @@ namespace NovelpiaDownloader
                     List<Thread> imageThreads = new List<Thread>();
                     foreach (var imgInfo in imageDownloadInfos)
                     {
-                        imageThreads.Add(new Thread(() => DownloadImage(log, imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality)));
+                        imageThreads.Add(new Thread(() => DownloadImage(log, imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality, imgInfo.format)));
                     }
                     ExecuteThreads(imageThreads, thread_num, interval);
 
@@ -508,7 +508,7 @@ namespace NovelpiaDownloader
                 else if (saveAsHtml) // New HTML output format
                 {
                     Directory.CreateDirectory(Path.Combine(directory, "Images")); // Images go into a subdirectory for HTML
-                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"Images/cover.webp"), "커버")); // Save cover for HTML
+                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"Images/cover.jpg"), "커버", SKEncodedImageFormat.Jpeg)); // Save cover for HTML
 
                     using (var file = new StreamWriter(outputPath, false, Encoding.UTF8))
                     {
@@ -535,7 +535,7 @@ namespace NovelpiaDownloader
                         file.Write($"<h2>Synopsis</h2>\n");
                         file.Write($"{synopsis}\n");
                         file.Write("<p>&nbsp;</p>\n");
-                        file.Write($"<p><img src=\"{novelNo}/Images/cover.webp\" alt=\"Cover\"></p>\n"); // Reference cover image
+                        file.Write($"<p><img src=\"{novelNo}/Images/cover.jpg\" alt=\"Cover\"></p>\n"); // Reference cover image
 
                         var serializer = new JavaScriptSerializer();
                         foreach (var chapterInfo in chapterNames)
@@ -563,7 +563,7 @@ namespace NovelpiaDownloader
                                             string url = imgMatch.Groups[1].Value;
                                             string imageFilename = $"{currentImageCounter}.webp";
                                             // Image path relative to the HTML file's directory
-                                            imageDownloadInfos.Add((url, Path.Combine(directory, $"Images/{imageFilename}"), "삽화"));
+                                            imageDownloadInfos.Add((url, Path.Combine(directory, $"Images/{imageFilename}"), "삽화", SKEncodedImageFormat.Webp));
                                             textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
                                                 $"<img alt=\"{currentImageCounter}\" src=\"{novelNo}/Images/{imageFilename}\" width=\"100%\"/>");
                                             currentImageCounter++;
@@ -614,7 +614,7 @@ namespace NovelpiaDownloader
                     List<Thread> imageThreads = new List<Thread>();
                     foreach (var imgInfo in imageDownloadInfos)
                     {
-                        imageThreads.Add(new Thread(() => DownloadImage(log, imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality)));
+                        imageThreads.Add(new Thread(() => DownloadImage(log, imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality, imgInfo.format)));
                     }
                     ExecuteThreads(imageThreads, thread_num, interval);
 
@@ -832,7 +832,7 @@ namespace NovelpiaDownloader
                 log($"{chapterName} ERROR! {ex.Message}\r\n");
             }
         }
-        private void DownloadImage(Action<string> log, string url, string path, string type, bool enableCompression, int jpegQuality)
+        private void DownloadImage(Action<string> log, string url, string path, string type, bool enableCompression, int jpegQuality, SKEncodedImageFormat format)
         {
             if (!url.StartsWith("http"))
                 url = "https:" + url;
@@ -863,17 +863,17 @@ namespace NovelpiaDownloader
                             // Create a SkiaSharp image from the bitmap
                             using (var originalImage = SKImage.FromBitmap(originalBitmap))
                             {
-                                // Use SKImage.Encode to save as WEBP with the specified quality
-                                using (var encodedData = originalImage.Encode(SKEncodedImageFormat.Webp, jpegQuality))
+                                // Use SKImage.Encode to save with the specified quality and format
+                                using (var encodedData = originalImage.Encode(format, jpegQuality))
                                 {
                                     if (encodedData == null)
                                     {
-                                        log($"{type} 다운로드 실패! SkiaSharp could not encode the image to WEBP.\r\n");
+                                        log($"{type} 다운로드 실패! SkiaSharp could not encode the image to {format}.\r\n");
                                         return;
                                     }
-                                    // Save the encoded WEBP data to the file
+                                    // Save the encoded data to the file
                                     File.WriteAllBytes(path, encodedData.ToArray());
-                                    log($"{type} (압축됨, 품질: {jpegQuality}%, 형식: WEBP) 다운로드 완료!\r\n");
+                                    log($"{type} (압축됨, 품질: {jpegQuality}%, 형식: {format}) 다운로드 완료!\r\n");
                                 }
                             }
                         }
