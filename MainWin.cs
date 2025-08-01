@@ -342,9 +342,10 @@ namespace NovelpiaDownloader
                     using (var file = new StreamWriter(Path.Combine(directory, "META-INF/container.xml"), false))
                         file.Write(EpubTemplate.container);
                     using (var file = new StreamWriter(Path.Combine(directory, "OEBPS/Styles/sgc-toc.css"), false))
-                        file.Write(EpubTemplate.sgctoc);
+                        file.Write(MinifyCss(EpubTemplate.sgctoc));
                     using (var file = new StreamWriter(Path.Combine(directory, "OEBPS/Styles/Stylesheet.css"), false))
-                        file.Write(EpubTemplate.stylesheet);
+                        file.Write(MinifyCss(EpubTemplate.stylesheet));
+
 
                     imageDownloadInfos.Add((cover_url, Path.Combine(directory, $"OEBPS/Images/cover.jpg"), "커버", SKEncodedImageFormat.Jpeg));
 
@@ -1128,5 +1129,24 @@ namespace NovelpiaDownloader
             string invalidRegStr = string.Format(@"[{0}]", invalidChars);
             return Regex.Replace(filename, invalidRegStr, "_");
         }
+
+        private string MinifyCss(string css)
+        {
+            // Remove comments
+            css = Regex.Replace(css, @"/\*[\s\S]*?\*/", string.Empty);
+            // Collapse multiple whitespaces
+            css = Regex.Replace(css, @"\s+", " ");
+            // Remove space around symbols
+            css = Regex.Replace(css, @"\s*([{}:;,])\s*", "$1");
+            // Trim leading/trailing space
+            return css.Trim();
+        }
+
     }
 }
+
+
+
+
+
+
