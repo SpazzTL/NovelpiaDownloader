@@ -1,4 +1,4 @@
-﻿namespace NovelpiaDownloader
+namespace NovelpiaDownloader
 {
     partial class MainWin
     {
