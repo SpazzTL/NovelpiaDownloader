@@ -2,6 +2,19 @@
 
 A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/NovelpiaDownloader) that enhances the user experience and output quality. This version adds comprehensive metadata (tags, author, synopsis), improves epub formatting with HTML tag and newline support, and includes features to optimize file size.
 
+---
+
+## 📚 Table of Contents
+
+- [✨ Features](#-features)
+- [🚀 Usage](#-usage)
+- [💾 Space Saving Tips](#-space-saving-tips)
+- [🛠️ Command-Line Arguments](#️-command-line-arguments)
+- [❓ FAQ (Frequently Asked Questions)](#-faq-frequently-asked-questions)
+- [📜 Legal & Disclaimer](#-legal--disclaimer)
+
+---
+
 ## ✨ Features
 
 - **Rich Metadata:** Automatically grabs and embeds tags, author names, and synopses into the epub file metadata.
@@ -17,7 +30,6 @@ To download paid chapters, you'll need a `LOGINKEY`. You can get it by logging i
 
 A higher thread count and lower interval can speed up your downloads, but be aware that this increases the risk of an IP ban.
 
-!(https://github.com/user-attachments/assets/c9d25fb9-b6b1-4122-8e89-99370c1a7bc7)
 
 ---
 
