@@ -80,6 +80,7 @@ A: The `Novel ID` is the number in the novel's URL. For example, if the URL is `
 
 **Q: My epub reader is throwing errors when I try to open the epub.**
 A: This can be caused by missing chapters(r19 chapters being skipped due to account permissions, etc). The easiest fix is to open the epub in [Calibre](https://calibre-ebook.com/download) (A open-source e-book & epub manager) and convert to epub, then download the new epub file. This can be done in bulk. 
+
 ---
 
 ## 📜 Legal & Disclaimer
