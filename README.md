@@ -1,113 +1,73 @@
-A fork of CjangCjengh's NovelpiaDownloader that grabs tags, author name, synopsis and adds them to epub metadata. Along with better epub formatting, including html tags and newlines support.
+# NovelpiaDownloader Enhanced Fork
 
-<BR>
+A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/NovelpiaDownloader) that enhances the user experience and output quality. This version adds comprehensive metadata (tags, author, synopsis), improves epub formatting with HTML tag and newline support, and includes features to optimize file size.
 
-# Usage
-Requires a LOGINKEY to download paid chapters, you can get your LOGINKEY by logging in to your novelpia account in a web browser, hitting f12, going to storage tab and copying it. \
-Higher thread counts and lower intervals can allow you to download faster, with a greater risk of IP BAN \
-<img width="431" height="30" alt="image" src="https://github.com/user-attachments/assets/c9d25fb9-b6b1-4122-8e89-99370c1a7bc7" />
+## ✨ Features
 
+- **Rich Metadata:** Automatically grabs and embeds tags, author names, and synopses into the epub file metadata.
+- **Improved EPUB Formatting:** Supports HTML tags and newlines, preserving the original formatting of the novel.
+- **File Size Optimization:** Includes an image compression feature to significantly reduce the final file size without a noticeable loss in quality.
+- **Command-Line Interface:** Offers a robust command-line interface for automated and scripted downloads.
 
-# Space Saving
-##  Image Compression
- Set to 80% for no noticeable quality difference, large savings (1mb -> 65KB).\
- Set to 50% for little difference, massive savings (1mb -> 30KB).\
- Set to 10-30% for noticable difference, extreme savings (1mb -> >10KB) \
+## 🚀 Usage
 
-<br>
-Difference between uncompressed and 10% quality compressed 
-<img width="1134" height="658" alt="image" src="https://github.com/user-attachments/assets/09161c74-92d8-4b3e-8e72-8ac574db719d" />
+To download paid chapters, you'll need a `LOGINKEY`. You can get it by logging into your Novelpia account in a web browser, opening the developer tools (F12), and navigating to the `Storage` tab. Copy the value of your `LOGINKEY` from there.
 
-## Calibre
-By using the Calibre epub editor, converting to .epub and saving the new .epub you can shave off an additional 10-50%.\
-Calibre achieves this by optimizing css, html, and embedding fonts. \
-I can not currently implement any of those spacing saving features, and I dont plan to due to difficulty. \
+A higher thread count and lower interval can speed up your downloads, but be aware that this increases the risk of an IP ban.
 
-# NovelpiaDownloader Command-Line Arguments
-
-The NovelpiaDownloader can be operated directly from the command line, allowing for automated and scripted downloads. The following arguments can be used to control its behavior without interacting with the graphical user interface.
+!(https://github.com/user-attachments/assets/c9d25fb9-b6b1-4122-8e89-99370c1a7bc7)
 
 ---
 
-### General Arguments
+## 💾 Space Saving Tips
 
-| Argument          | Value Type  | Description                                                                                                                   |
-| :---------------- | :---------- | :---------------------------------------------------------------------------------------------------------------------------- |
-| **`-novelid`** | `number`    | **Required.** The ID of the novel you wish to download. This can be found in the novel's URL on the Novelpia website.         |
-| **`-output`** | `file path` | Specifies the full path, including the desired filename, for the output file. The file extension is overridden by format flags. |
-| **`-from`** | `number`    | Optional. The chapter number to start the download from (inclusive). If omitted, it will start from the first chapter.         |
-| **`-to`** | `number`    | Optional. The chapter number to end the download at (inclusive). If omitted, it will download to the very last chapter.       |
+### Image Compression
 
----
+Our built-in image compression can dramatically reduce file size. Use the `-compressimages` and `-jpegquality` arguments to enable this feature.
 
-### Output Format Arguments
+- **80% Quality:** Provides large savings with no noticeable quality difference (e.g., 1MB -> 65KB).
+- **50% Quality:** Offers massive savings with only a small difference in quality (e.g., 1MB -> 30KB).
+- **10-30% Quality:** For extreme savings, though the quality difference will be noticeable (e.g., 1MB -> <10KB).
 
-Use one of the following flags to set the output format. If no format argument is specified, the output will default to a plain `.txt` file.
+![Comparison of uncompressed and 10% quality compressed images](https://github.com/user-attachments/assets/09161c74-92d8-4b3e-8e72-8ac574db719d)
 
-| Argument | Value Type | Description                                                                                                           |
-| :------- | :--------- | :-------------------------------------------------------------------------------------------------------------------- |
-| **`-epub`** | `none`     | Saves the novel as an `.epub` file. This format includes metadata, the cover image, and embedded chapter images.      |
-| **`-html`** | `none`     | Saves the novel as a single, self-contained `.html` file. This format includes metadata and images. |
+### Post-Processing with Calibre
+
+For even greater space savings (10-50%), you can use the Calibre epub editor. Converting and saving a new `.epub` file with Calibre optimizes the CSS, HTML, and embedded fonts. This is a manual step, as implementing these optimizations directly is currently outside the scope of this project.
 
 ---
 
-### Image-Related Arguments
+## 🛠️ Command-Line Arguments
 
-These arguments control how images are handled in `.epub` and `.html` formats.
+The NovelpiaDownloader can be operated directly from the command line, ideal for automated and scripted downloads.
 
-| Argument            | Value Type | Description                                                                                                                    |
-| :------------------ | :--------- | :----------------------------------------------------------------------------------------------------------------------------- |
-| **`-compressimages`** | `none`     | Enables JPEG compression for all downloaded images (cover and chapters) to reduce the final file size.                         |
-| **`-jpegquality`** | `number`   | Used with `-compressimages`. Sets the quality of the JPEG compression from 0 to 100. The default is 80. |
+*(Keep the table of arguments and usage examples exactly as you have them, they are very clear and well-formatted.)*
 
 ---
 
-### Batch Downloading Arguments
+## ❓ FAQ (Frequently Asked Questions)
 
-These arguments are used to download multiple novels from a list.
+Here are some solutions to common problems you might encounter.
 
-| Argument        | Value Type       | Description                                                                                                       |
-| :-------------- | :--------------- | :---------------------------------------------------------------------------------------------------------------- |
-| **`-listfile`** | `file path`      | Specifies the path to a `.txt` file containing the novels to download. Each line must be in `Novel Title,Novel ID` format. |
-| **`-outputdir`** | `directory path` | Specifies the folder where all novels from the batch download will be saved.                                      |
+**Q: I'm getting an error that says I'm not logged in, but I've entered my LOGINKEY.**
+A: Ensure your `LOGINKEY` is still valid. Novelpia keys expire after a period of time. Try logging out and back in on the website, then get a new `LOGINKEY` from the storage tab and use that. MAKE SURE YOU CLICK THE LOG IN BUTTON in application.
 
+**Q: The download process seems to be stuck or is extremely slow.**
+A: This could be due to a temporary IP ban from Novelpia's servers, which can happen with a high thread count. Try the following:
+1. Reduce your thread count and increase the interval in the settings.
+2. If the problem persists, wait for a few hours and try again, as the IP ban is usually temporary.
+3. Check your network connection.
+
+**Q: The downloaded file is missing chapters or content.**
+A: Double-check the `-from` and `-to` arguments to make sure they cover the desired chapter range. Ensure you have a valid `LOGINKEY` for any paid chapters. Lastly make sure your accont has access to the content you are donwloading.
+
+**Q: How do I find the `Novel ID`?**
+A: The `Novel ID` is the number in the novel's URL. For example, if the URL is `https://novelpia.com/novel/123456`, the `Novel ID` is `123456`.
+
+**Q: My epub reader is throwing errors when I try to open the epub.**
+A: This can be caused by missing chapters(r19 chapters being skipped due to account permissions, etc). The easiest fix is to open the epub in [Calibre](https://calibre-ebook.com/download) (A open-source e-book & epub manager) and convert to epub, then download the new epub file. This can be done in bulk. 
 ---
 
-### Usage Examples
+## 📜 Legal & Disclaimer
 
-#### 1. Basic Download
-Download a novel as a default `.txt` file.
-```bash
-NovelpiaDownloader.exe -novelid 123456 -output "C:\Downloads\FantasyNovel.txt"
-```
-
-#### 2. EPUB Download with Image Compression
-Download a novel as an `.epub`, with images compressed to 75% quality.
-```bash
-NovelpiaDownloader.exe -novelid 123456 -output "C:\Downloads\FantasyNovel.epub" -epub -compressimages -jpegquality 75
-```
-
-#### 3. HTML Download
-Download a novel as a single `.html` file.
-```bash
-NovelpiaDownloader.exe -novelid 123456 -output "C:\Downloads\FantasyNovel.html" -html
-```
-
-#### 4. Partial Download
-Download only chapters 50 through 100 of a novel as an `.epub`.
-```bash
-NovelpiaDownloader.exe -novelid 123456 -output "C:\Downloads\FantasyNovel_chapters_50-100.epub" -epub -from 50 -to 100
-```
-
-#### 5. Batch Download
-Download all novels listed in `MyList.txt` and save them as `.epub` files in the `C:\NovelCollection` folder.
-
-* **Contents of `MyList.txt`:**
-    ```
-    Novel1,123456
-    Another Story,789012
-    ```
-* **Command:**
-    ```bash
-    NovelpiaDownloader.exe -listfile "C:\Users\Admin\Desktop\MyList.txt" -outputdir "C:\NovelCollection" -epub
-    ```
+This project is a fork of CjangCjengh's NovelpiaDownloader and is intended for personal use to create backups of content you have legally accessed. I am not affiliated with Novelpia. Please respect their terms of service and copyright laws.
