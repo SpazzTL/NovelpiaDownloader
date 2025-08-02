@@ -6,12 +6,14 @@ A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/Nove
 
 - **Rich Metadata:** Automatically grabs and embeds tags, author names, and synopses into the epub file metadata.
 - **Improved EPUB Formatting:** Supports HTML tags and newlines, preserving the original formatting of the novel.
-- **File Size Optimization:** Includes an image compression feature to significantly reduce the final file size without a noticeable loss in quality.
+- **File Size Optimization:** Includes an webp image compression feature to significantly reduce the final file size without a noticeable loss in quality.
 - **Command-Line Interface:** Offers a robust command-line interface for automated and scripted downloads.
+- **Bulk Downloads:** Allows you to easily redownload your library to fix formatting, optimize file sizes, etc.
 
 ## 🚀 Usage
 
 To download paid chapters, you'll need a `LOGINKEY`. You can get it by logging into your Novelpia account in a web browser, opening the developer tools (F12), and navigating to the `Storage` tab. Copy the value of your `LOGINKEY` from there.
+(YOU MUST HAVE ACCESS TO THE CONTENT THAT YOU INTEND TO DOWNLOAD ON YOUR ACCOUNT.)
 
 A higher thread count and lower interval can speed up your downloads, but be aware that this increases the risk of an IP ban.
 
