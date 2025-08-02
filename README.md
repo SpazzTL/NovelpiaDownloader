@@ -63,22 +63,22 @@ The NovelpiaDownloader can be operated directly from the command line, ideal for
 
 Here are some solutions to common problems you might encounter.
 
-**Q: I'm getting an error that says I'm not logged in, but I've entered my LOGINKEY.**
+**Q: I'm getting an error that says I'm not logged in, but I've entered my LOGINKEY.** \
 A: Ensure your `LOGINKEY` is still valid. Novelpia keys expire after a period of time. Try logging out and back in on the website, then get a new `LOGINKEY` from the storage tab and use that. MAKE SURE YOU CLICK THE LOG IN BUTTON in application.
 
-**Q: The download process seems to be stuck or is extremely slow.**
+**Q: The download process seems to be stuck or is extremely slow.** \
 A: This could be due to a temporary IP ban from Novelpia's servers, which can happen with a high thread count. Try the following:
 1. Reduce your thread count and increase the interval in the settings.
 2. If the problem persists, wait for a few hours and try again, as the IP ban is usually temporary.
 3. Check your network connection.
 
-**Q: The downloaded file is missing chapters or content.**
+**Q: The downloaded file is missing chapters or content.** \
 A: Double-check the `-from` and `-to` arguments to make sure they cover the desired chapter range. Ensure you have a valid `LOGINKEY` for any paid chapters. Lastly make sure your accont has access to the content you are donwloading.
 
-**Q: How do I find the `Novel ID`?**
+**Q: How do I find the `Novel ID`?** \
 A: The `Novel ID` is the number in the novel's URL. For example, if the URL is `https://novelpia.com/novel/123456`, the `Novel ID` is `123456`.
 
-**Q: My epub reader is throwing errors when I try to open the epub.**
+**Q: My epub reader is throwing errors when I try to open the epub.** \
 A: This can be caused by missing chapters(r19 chapters being skipped due to account permissions, etc). The easiest fix is to open the epub in [Calibre](https://calibre-ebook.com/download) (A open-source e-book & epub manager) and convert to epub, then download the new epub file. This can be done in bulk. 
 
 ---
