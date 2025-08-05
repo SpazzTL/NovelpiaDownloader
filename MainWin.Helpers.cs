@@ -12,39 +12,39 @@ namespace NovelpiaDownloader
 {
     public partial class MainWin : Form
     {
-        private void DownloadChapter(Action<string> log, string chapterId, string chapterName, string jsonPath)
+        private void DownloadChapter(string chapterId, string chapterName, string jsonPath, bool isHeadless = false)
         {
             for (int i = 1; i <= MAX_DOWNLOAD_RETRIES; i++)
             {
                 try
                 {
-                    string resp = PostRequest(log, $"https://novelpia.com/proc/viewer_data/{chapterId}", novelpia.loginkey);
+                    string resp = PostRequest($"https://novelpia.com/proc/viewer_data/{chapterId}", novelpia.loginkey, isHeadless: isHeadless);
                     if (string.IsNullOrEmpty(resp) || resp.Contains("본인인증"))
                         throw new Exception("Authentication failed or content not available.");
 
                     using (var file = new StreamWriter(jsonPath, false))
                         file.Write(resp);
 
-                    log(chapterName + "\r\n");
+                    Log(chapterName, isHeadless);
                     return;
                 }
                 catch (Exception ex)
                 {
-                    log($"CHAPTER FAILED! ({chapterName}) (Attempt {i}/{MAX_DOWNLOAD_RETRIES}): {ex.Message}\r\n");
+                    Log($"CHAPTER FAILED! ({chapterName}) (Attempt {i}/{MAX_DOWNLOAD_RETRIES}): {ex.Message}", isHeadless);
                     if (i < MAX_DOWNLOAD_RETRIES)
                     {
-                        log("RETRYING!\r\n");
+                        Log("RETRYING!", isHeadless);
                         Thread.Sleep(RETRY_DELAY_MS);
                     }
                     else
                     {
-                        log($"All retries failed for chapter: {chapterName}. It will be missing from the output.\r\n");
+                        Log($"All retries failed for chapter: {chapterName}. It will be missing from the output.", isHeadless);
                     }
                 }
             }
         }
 
-        private void DownloadImage(Action<string> log, string url, string path, string type, bool enableCompression, int jpegQuality, SKEncodedImageFormat format)
+        private void DownloadImage(string url, string path, string type, bool enableCompression, int jpegQuality, SKEncodedImageFormat format, bool isHeadless = false)
         {
             if (!url.StartsWith("http")) url = "https:" + url;
 
@@ -52,7 +52,7 @@ namespace NovelpiaDownloader
             {
                 try
                 {
-                    log($"{type} 다운로드 시작\r\n{url}\r\n");
+                    Log($"{type} 다운로드 시작\r\n{url}", isHeadless);
                     string directory = Path.GetDirectoryName(path);
                     if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
@@ -69,29 +69,29 @@ namespace NovelpiaDownloader
                                 {
                                     if (encodedData == null) throw new Exception($"SkiaSharp could not encode the image to {format}.");
                                     File.WriteAllBytes(path, encodedData.ToArray());
-                                    log($"{type} (압축됨, 품질: {jpegQuality}%, 형식: {format}) 다운로드 완료!\r\n");
+                                    Log($"{type} (압축됨, 품질: {jpegQuality}%, 형식: {format}) 다운로드 완료!", isHeadless);
                                 }
                             }
                         }
                         else
                         {
                             File.WriteAllBytes(path, imageStream.ToArray());
-                            log($"{type} 다운로드 완료!\r\n");
+                            Log($"{type} 다운로드 완료!", isHeadless);
                         }
                     }
                     return;
                 }
                 catch (Exception ex)
                 {
-                    log($"IMAGE FAILED! ({type}) (Attempt {i}/{MAX_DOWNLOAD_RETRIES}): {ex.Message}\r\n{url}\r\n");
+                    Log($"IMAGE FAILED! ({type}) (Attempt {i}/{MAX_DOWNLOAD_RETRIES}): {ex.Message}\r\n{url}", isHeadless);
                     if (i < MAX_DOWNLOAD_RETRIES)
                     {
-                        log("RETRYING!\r\n");
+                        Log("RETRYING!", isHeadless);
                         Thread.Sleep(RETRY_DELAY_MS);
                     }
                     else
                     {
-                        log($"All retries failed for image: {url}. It will be missing from the output.\r\n");
+                        Log($"All retries failed for image: {url}. It will be missing from the output.", isHeadless);
                     }
                 }
             }
@@ -109,7 +109,7 @@ namespace NovelpiaDownloader
             }
         }
 
-        private static string PostRequest(Action<string> log, string url, string loginkey, string data = null)
+        private string PostRequest(string url, string loginkey, string data = null, bool isHeadless = false)
         {
             try
             {
@@ -133,20 +133,20 @@ namespace NovelpiaDownloader
             }
             catch (WebException ex)
             {
-                log($"Web request error for {url}: {ex.Message}\r\n");
+                Log($"Web request error for {url}: {ex.Message}", isHeadless);
                 if (ex.Response != null)
                 {
                     using (var errorStream = ex.Response.GetResponseStream())
                     using (var reader = new StreamReader(errorStream))
                     {
-                        log($"Response: {reader.ReadToEnd()}\r\n");
+                        Log($"Response: {reader.ReadToEnd()}", isHeadless);
                     }
                 }
                 return null;
             }
             catch (Exception ex)
             {
-                log($"An unexpected error occurred in PostRequest for {url}: {ex.Message}\r\n");
+                Log($"An unexpected error occurred in PostRequest for {url}: {ex.Message}", isHeadless);
                 return null;
             }
         }

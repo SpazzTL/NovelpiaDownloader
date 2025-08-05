@@ -65,6 +65,9 @@ namespace NovelpiaDownloader
             this.FontLabel = new System.Windows.Forms.Label();
             this.FontButton = new System.Windows.Forms.Button();
             this.FontBox = new System.Windows.Forms.TextBox();
+            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.chapterProgressBar = new System.Windows.Forms.ToolStripProgressBar();
+            this.progressLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.LoginGroup.SuspendLayout();
             this.DownloadGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.JpegQualityNum)).BeginInit();
@@ -72,6 +75,7 @@ namespace NovelpiaDownloader
             ((System.ComponentModel.ISupportInitialize)(this.FromNum)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.ThreadNum)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.IntervalNum)).BeginInit();
+            this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // LoginGroup
@@ -477,11 +481,34 @@ namespace NovelpiaDownloader
             this.FontBox.TabIndex = 8;
             this.FontBox.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FontBox_KeyPress);
             // 
+            // statusStrip1
+            // 
+            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.chapterProgressBar,
+            this.progressLabel});
+            this.statusStrip1.Location = new System.Drawing.Point(0, 555);
+            this.statusStrip1.Name = "statusStrip1";
+            this.statusStrip1.Size = new System.Drawing.Size(890, 22);
+            this.statusStrip1.TabIndex = 17;
+            this.statusStrip1.Text = "statusStrip1";
+            // 
+            // chapterProgressBar
+            // 
+            this.chapterProgressBar.Name = "chapterProgressBar";
+            this.chapterProgressBar.Size = new System.Drawing.Size(100, 16);
+            // 
+            // progressLabel
+            // 
+            this.progressLabel.Name = "progressLabel";
+            this.progressLabel.Size = new System.Drawing.Size(26, 17);
+            this.progressLabel.Text = "Idle";
+            // 
             // MainWin
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(890, 672);
+            this.ClientSize = new System.Drawing.Size(890, 577);
+            this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.FontButton);
             this.Controls.Add(this.FontLabel);
             this.Controls.Add(this.FontBox);
@@ -511,6 +538,8 @@ namespace NovelpiaDownloader
             ((System.ComponentModel.ISupportInitialize)(this.FromNum)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.ThreadNum)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.IntervalNum)).EndInit();
+            this.statusStrip1.ResumeLayout(false);
+            this.statusStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -554,6 +583,9 @@ namespace NovelpiaDownloader
         private System.Windows.Forms.CheckBox ImageCompressCheckBox;
         private System.Windows.Forms.Label JpegQualityLabel;
         private System.Windows.Forms.NumericUpDown JpegQualityNum;
+        private System.Windows.Forms.StatusStrip statusStrip1;
+        private System.Windows.Forms.ToolStripProgressBar chapterProgressBar;
+        private System.Windows.Forms.ToolStripStatusLabel progressLabel;
     }
 }
 
