@@ -39,6 +39,7 @@ namespace NovelpiaDownloader
             this.PasswordLabel = new System.Windows.Forms.Label();
             this.EmailLabel = new System.Windows.Forms.Label();
             this.DownloadGroup = new System.Windows.Forms.GroupBox();
+            this.retryChaptersCheckBox = new System.Windows.Forms.CheckBox();
             this.JpegQualityLabel = new System.Windows.Forms.Label();
             this.JpegQualityNum = new System.Windows.Forms.NumericUpDown();
             this.ImageCompressCheckBox = new System.Windows.Forms.CheckBox();
@@ -68,6 +69,7 @@ namespace NovelpiaDownloader
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.chapterProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.progressLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.label1 = new System.Windows.Forms.Label();
             this.LoginGroup.SuspendLayout();
             this.DownloadGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.JpegQualityNum)).BeginInit();
@@ -165,6 +167,7 @@ namespace NovelpiaDownloader
             // 
             // DownloadGroup
             // 
+            this.DownloadGroup.Controls.Add(this.retryChaptersCheckBox);
             this.DownloadGroup.Controls.Add(this.JpegQualityLabel);
             this.DownloadGroup.Controls.Add(this.JpegQualityNum);
             this.DownloadGroup.Controls.Add(this.ImageCompressCheckBox);
@@ -188,6 +191,16 @@ namespace NovelpiaDownloader
             this.DownloadGroup.TabIndex = 1;
             this.DownloadGroup.TabStop = false;
             this.DownloadGroup.Text = "다운로드";
+            // 
+            // retryChaptersCheckBox
+            // 
+            this.retryChaptersCheckBox.AutoSize = true;
+            this.retryChaptersCheckBox.Location = new System.Drawing.Point(14, 198);
+            this.retryChaptersCheckBox.Name = "retryChaptersCheckBox";
+            this.retryChaptersCheckBox.Size = new System.Drawing.Size(104, 19);
+            this.retryChaptersCheckBox.TabIndex = 23;
+            this.retryChaptersCheckBox.Text = "Retry Chapters";
+            this.retryChaptersCheckBox.UseVisualStyleBackColor = true;
             // 
             // JpegQualityLabel
             // 
@@ -503,11 +516,21 @@ namespace NovelpiaDownloader
             this.progressLabel.Size = new System.Drawing.Size(26, 17);
             this.progressLabel.Text = "Idle";
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(836, 562);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(42, 15);
+            this.label1.TabIndex = 18;
+            this.label1.Text = "V4.3.1";
+            // 
             // MainWin
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(890, 577);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.FontButton);
             this.Controls.Add(this.FontLabel);
@@ -586,6 +609,8 @@ namespace NovelpiaDownloader
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripProgressBar chapterProgressBar;
         private System.Windows.Forms.ToolStripStatusLabel progressLabel;
+        private System.Windows.Forms.CheckBox retryChaptersCheckBox;
+        private System.Windows.Forms.Label label1;
     }
 }
 

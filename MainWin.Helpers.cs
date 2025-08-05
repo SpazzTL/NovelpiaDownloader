@@ -31,14 +31,14 @@ namespace NovelpiaDownloader
                 catch (Exception ex)
                 {
                     Log($"CHAPTER FAILED! ({chapterName}) (Attempt {i}/{MAX_DOWNLOAD_RETRIES}): {ex.Message}", isHeadless);
-                    if (i < MAX_DOWNLOAD_RETRIES)
+                    if (i < MAX_DOWNLOAD_RETRIES && retryChaptersCheckBox.Checked)
                     {
                         Log("RETRYING!", isHeadless);
                         Thread.Sleep(RETRY_DELAY_MS);
                     }
                     else
                     {
-                        Log($"All retries failed for chapter: {chapterName}. It will be missing from the output.", isHeadless);
+                        Log($" Retries Disabled or All retries failed for chapter: {chapterName}. It will be missing from the output.", isHeadless);
                     }
                 }
             }
