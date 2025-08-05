@@ -385,7 +385,7 @@ namespace NovelpiaDownloader
             this.ConsoleBox.Name = "ConsoleBox";
             this.ConsoleBox.ReadOnly = true;
             this.ConsoleBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.ConsoleBox.Size = new System.Drawing.Size(420, 523);
+            this.ConsoleBox.Size = new System.Drawing.Size(420, 457);
             this.ConsoleBox.TabIndex = 5;
             // 
             // ThreadLabel
@@ -481,7 +481,7 @@ namespace NovelpiaDownloader
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(890, 558);
+            this.ClientSize = new System.Drawing.Size(890, 672);
             this.Controls.Add(this.FontButton);
             this.Controls.Add(this.FontLabel);
             this.Controls.Add(this.FontBox);
