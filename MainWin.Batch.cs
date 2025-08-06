@@ -12,7 +12,7 @@ namespace NovelpiaDownloader
     {
         public void BatchDownloadCore(string listFilePath, string outputDirectory, bool saveAsEpub, bool saveAsHtml,
                                       bool enableImageCompression = false, int jpegQuality = 80,
-                                      bool isHeadless = false)
+                                      bool downloadNotices = false, bool isHeadless = false)
         {
             Log($"Starting batch download from: {listFilePath}", isHeadless);
 
@@ -47,7 +47,7 @@ namespace NovelpiaDownloader
                             {
                                 try
                                 {
-                                    Task novelDownloadTask = DownloadCore(novelId, saveAsEpub, saveAsHtml, outputPath, null, null, enableImageCompression, jpegQuality, isHeadless, currentNovelNum, totalNovels);
+                                    Task novelDownloadTask = DownloadCore(novelId, saveAsEpub, saveAsHtml, outputPath, null, null, enableImageCompression, jpegQuality, downloadNotices, isHeadless, currentNovelNum, totalNovels);
                                     novelDownloadTask.Wait();
 
                                     if (File.Exists(outputPath)) { downloadSuccess = true; Log($"Finished downloading '{title}'."); break; }

@@ -82,6 +82,7 @@ namespace NovelpiaDownloader
                 if (config_dict.ContainsKey("enable_image_compression")) ImageCompressCheckBox.Checked = config_dict["enable_image_compression"];
                 if (config_dict.ContainsKey("jpeg_quality")) JpegQualityNum.Value = config_dict["jpeg_quality"];
                 if (config_dict.ContainsKey("save_as_epub")) EpubButton.Checked = config_dict["save_as_epub"];
+                if (config_dict.ContainsKey("download_notices")) NoticesCheckBox.Checked = config_dict["download_notices"];
             }
             // (Argument parsing logic remains the same as your previous version)
         }
@@ -105,12 +106,13 @@ namespace NovelpiaDownloader
                 int? toChapter = ToCheck.Checked ? (int?)ToNum.Value : null;
                 bool enableImageCompression = ImageCompressCheckBox.Checked;
                 int jpegQuality = (int)JpegQualityNum.Value;
+                bool downloadNotices = NoticesCheckBox.Checked;
 
                 Task.Run(() => {
                     bool downloadSuccess = false;
                     for (int attempt = 1; attempt <= MAX_OVERALL_RETRIES; attempt++)
                     {
-                        Task downloadTask = DownloadCore(novelNo, saveAsEpub, saveAsHtml, outputPath, fromChapter, toChapter, enableImageCompression, jpegQuality, false);
+                        Task downloadTask = DownloadCore(novelNo, saveAsEpub, saveAsHtml, outputPath, fromChapter, toChapter, enableImageCompression, jpegQuality, downloadNotices, false);
                         downloadTask.Wait();
 
                         if (File.Exists(outputPath)) { downloadSuccess = true; break; }
@@ -150,15 +152,16 @@ namespace NovelpiaDownloader
             bool saveAsHtml = HtmlCheckBox.Checked && !saveAsEpub;
             bool enableImageCompression = ImageCompressCheckBox.Checked;
             int jpegQuality = (int)JpegQualityNum.Value;
+            bool downloadNotices = NoticesCheckBox.Checked;
 
             Task.Run(() =>
             {
-                BatchDownloadCore(listFilePath, outputDirectory, saveAsEpub, saveAsHtml, enableImageCompression, jpegQuality, false);
+                BatchDownloadCore(listFilePath, outputDirectory, saveAsEpub, saveAsHtml, enableImageCompression, jpegQuality, downloadNotices, false);
                 Log("Batch download process initiated. Check console for details.");
             });
         }
 
-        
+
         private void LoginButton1_Click(object sender, EventArgs e)
         {
             if (novelpia.Login(EmailText.Text, PasswordText.Text))
@@ -171,7 +174,7 @@ namespace NovelpiaDownloader
                 Log("로그인 실패!");
             }
         }
-    
+
 
 
         private void LoginButton2_Click(object sender, EventArgs e) => novelpia.loginkey = LoginkeyText.Text;
@@ -183,7 +186,8 @@ namespace NovelpiaDownloader
                 { "thread_num", ThreadNum.Value }, { "interval_num", IntervalNum.Value }, { "email", EmailText.Text },
                 { "wd", PasswordText.Text }, { "loginkey", LoginkeyText.Text }, { "mapping_path", FontBox.Text },
                 { "include_html_in_txt", HtmlCheckBox.Checked }, { "enable_image_compression", ImageCompressCheckBox.Checked },
-                { "jpeg_quality", JpegQualityNum.Value }, { "save_as_epub", EpubButton.Checked }
+                { "jpeg_quality", JpegQualityNum.Value }, { "save_as_epub", EpubButton.Checked },
+                { "download_notices", NoticesCheckBox.Checked }
             };
             using (StreamWriter sw = new StreamWriter("config.json"))
             {

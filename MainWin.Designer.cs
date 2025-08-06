@@ -70,6 +70,7 @@ namespace NovelpiaDownloader
             this.chapterProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.progressLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.label1 = new System.Windows.Forms.Label();
+            this.NoticesCheckBox = new System.Windows.Forms.CheckBox();
             this.LoginGroup.SuspendLayout();
             this.DownloadGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.JpegQualityNum)).BeginInit();
@@ -167,6 +168,7 @@ namespace NovelpiaDownloader
             // 
             // DownloadGroup
             // 
+            this.DownloadGroup.Controls.Add(this.NoticesCheckBox);
             this.DownloadGroup.Controls.Add(this.retryChaptersCheckBox);
             this.DownloadGroup.Controls.Add(this.JpegQualityLabel);
             this.DownloadGroup.Controls.Add(this.JpegQualityNum);
@@ -525,6 +527,16 @@ namespace NovelpiaDownloader
             this.label1.TabIndex = 18;
             this.label1.Text = "V4.3.1";
             // 
+            // NoticesCheckBox
+            // 
+            this.NoticesCheckBox.AutoSize = true;
+            this.NoticesCheckBox.Location = new System.Drawing.Point(14, 224);
+            this.NoticesCheckBox.Name = "NoticesCheckBox";
+            this.NoticesCheckBox.Size = new System.Drawing.Size(166, 19);
+            this.NoticesCheckBox.TabIndex = 24;
+            this.NoticesCheckBox.Text = "Download Author Notices";
+            this.NoticesCheckBox.UseVisualStyleBackColor = true;
+            // 
             // MainWin
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -611,6 +623,7 @@ namespace NovelpiaDownloader
         private System.Windows.Forms.ToolStripStatusLabel progressLabel;
         private System.Windows.Forms.CheckBox retryChaptersCheckBox;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.CheckBox NoticesCheckBox;
     }
 }
 

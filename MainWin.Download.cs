@@ -28,53 +28,126 @@ namespace NovelpiaDownloader
             int? toChapter = null,
             bool enableImageCompression = false,
             int jpegQuality = 80,
+            bool downloadNotices = false,
             bool isHeadless = false,
             int? currentNovel = null,
             int? totalNovels = null)
         {
             Task downloadTask = Task.Run(() =>
             {
-                Log($"다운로드 시작: Novel ID {novelNo}", isHeadless);
+                Log($"Download started: Novel ID {novelNo}", isHeadless);
                 string directory = Path.Combine(Path.GetDirectoryName(path), novelNo);
                 if (Directory.Exists(directory)) Directory.Delete(directory, true);
                 Directory.CreateDirectory(directory);
 
-                // --- Chapter Pre-Scan for Progress Bar ---
+                // --- Chapter and Notice Pre-Scan for Progress Bar ---
                 var allChapters = new List<(string id, string name, string jsonPath)>();
-                int page = 0;
-                int chapterIndex = 0;
                 var discoveredIds = new HashSet<string>();
                 Log("Analyzing novel to get chapter list...", isHeadless);
+
+                // --- Get Novel Metadata and Notices from the main novel page ---
+                var request = (HttpWebRequest)WebRequest.Create($"https://novelpia.com/novel/{novelNo}");
+                request.Method = "GET";
+                request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build=MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
+                request.Headers.Add("cookie", $"LOGINKEY={novelpia.loginkey};");
+                string responseText;
+                using (var response = (HttpWebResponse)request.GetResponse())
+                using (var streamReader = new StreamReader(response.GetResponseStream()))
+                {
+                    responseText = streamReader.ReadToEnd();
+                }
+
+                // --- For debugging purposes, print the full page source to the log
+                // Log($"Page Source:\n{responseText.Substring(0, Math.Min(responseText.Length, 1000))}", isHeadless);
+
+                // --- Scan for Author Notices ---
+                if (downloadNotices)
+                {
+                    Log("Scanning for author notices...", isHeadless);
+                    // Modified regex to more reliably find the notice table
+                    var noticeTableMatch = Regex.Match(responseText, @"<table[^>]+class=""notice_table[^>]*""[\s\S]*?</table>", RegexOptions.Singleline);
+
+                    if (noticeTableMatch.Success)
+                    {
+                        string noticeHtml = noticeTableMatch.Value;
+                        // Log the HTML fragment of the notice table to verify it's being found correctly
+                        // Log($"Notice Table HTML:\n{noticeHtml.Substring(0, Math.Min(noticeHtml.Length, 500))}", isHeadless);
+
+                        var noticeMatches = Regex.Matches(noticeHtml, @"location='\/viewer\/(\d+)'[^>]*><b>(.*?)</b>", RegexOptions.Singleline);
+
+                        foreach (Match notice in noticeMatches)
+                        {
+                            string noticeId = notice.Groups[1].Value;
+                            if (discoveredIds.Contains(noticeId)) continue;
+
+                            string noticeName = "공지: " + Regex.Replace(notice.Groups[2].Value, "<.*?>", "").Trim();
+                            string jsonPath = Path.Combine(directory, $"notice_{allChapters.Count.ToString().PadLeft(4, '0')}.json");
+                            allChapters.Add((noticeId, noticeName, jsonPath));
+                            discoveredIds.Add(noticeId);
+                        }
+                    }
+                    Log(allChapters.Count > 0 ? $"Found {allChapters.Count} author notice(s)." : "Found 0 author notices.", isHeadless);
+                }
+
+                // --- Extract Metadata from the same responseText ---
+                var titleMatch = Regex.Match(responseText, @"productName = '(.+?)';");
+                string title = titleMatch.Success ? titleMatch.Groups[1].Value : "Unknown Title";
+                var authorMatch = Regex.Match(responseText, @"<a class=""writer-name""[^>]*>\s*(.+?)\s*</a>");
+                string author = authorMatch.Success ? authorMatch.Groups[1].Value.Trim() : "Unknown Author";
+                var tagMatches = Regex.Matches(responseText, @"<span class=""tag"".*?>(#.+?)</span>");
+                List<string> tags = tagMatches.Cast<Match>().Select(m => m.Groups[1].Value.TrimStart('#')).Distinct().ToList();
+                var synopsisMatch = Regex.Match(responseText, @"<div class=""synopsis"">(.*?)</div>", RegexOptions.Singleline);
+                string synopsis = synopsisMatch.Success ? HttpUtility.HtmlDecode(synopsisMatch.Groups[1].Value.Trim()) : "No synopsis available.";
+                var completionMatch = Regex.Match(responseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
+                string status = completionMatch.Success ? completionMatch.Groups[1].Value.Trim() : (responseText.Contains(@"<span class=""s_inv"" style="".*?"">연재중단</span>") ? "연재중단" : "");
+                var coverUrlMatch = Regex.Match(responseText, @"href=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
+                string cover_url = coverUrlMatch.Success ? coverUrlMatch.Groups[1].Value : Regex.Match(responseText, @"src=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""").Groups[1].Value;
+
+                // --- Scan for Regular Chapters ---
+                Log("Scanning for regular chapters...", isHeadless);
+                int chapterIndex = 0;
+                int page = 0;
                 while (true)
                 {
                     string data = $"novel_no={novelNo}&sort=DOWN&page={page}";
                     string resp = PostRequest($"https://novelpia.com/proc/episode_list", novelpia.loginkey, data, isHeadless);
-                    if (resp == null || resp.Contains("본인인증")) break;
+                    if (string.IsNullOrEmpty(resp) || resp.Contains("본인인증")) break;
 
                     var chapters = Regex.Matches(resp, @"id=""bookmark_(\d+)""></i>(.+?)</b>");
-                    if (chapters.Count == 0 || discoveredIds.Contains(chapters[0].Groups[1].Value)) break;
 
+                    // If the page has no bookmark-style chapters and no episode table, we can stop.
+                    if (chapters.Count == 0 && !resp.Contains(@"id=""episode_table""")) break;
+
+                    bool newChaptersFoundOnPage = false;
                     foreach (Match chapter in chapters)
                     {
                         string chapterId = chapter.Groups[1].Value;
                         if (discoveredIds.Contains(chapterId)) continue;
 
+                        newChaptersFoundOnPage = true;
                         int from = fromChapter.HasValue ? fromChapter.Value - 1 : 0;
                         int to = toChapter.HasValue ? toChapter.Value : int.MaxValue;
 
                         if (chapterIndex >= from && chapterIndex < to)
                         {
                             string chapterName = chapter.Groups[2].Value;
-                            string jsonPath = Path.Combine(directory, $"{chapterIndex.ToString().PadLeft(4, '0')}.json");
+                            string jsonPath = Path.Combine(directory, $"{allChapters.Count.ToString().PadLeft(4, '0')}.json");
                             allChapters.Add((chapterId, chapterName, jsonPath));
                         }
                         discoveredIds.Add(chapterId);
                         chapterIndex++;
                     }
+
+                    // If we are on page > 0 and find no new chapters, we can safely stop.
+                    if (page > 0 && !newChaptersFoundOnPage && chapters.Count > 0)
+                    {
+                        break;
+                    }
+
                     page++;
                 }
                 int totalChaptersToDownload = allChapters.Count;
-                Log($"Found {totalChaptersToDownload} chapters to download.", isHeadless);
+                Log($"Found a total of {totalChaptersToDownload} items to download.", isHeadless);
 
                 // --- Download Chapters ---
                 int thread_num = 1;
@@ -103,36 +176,11 @@ namespace NovelpiaDownloader
                 var imageDownloadInfos = new List<(string url, string localPath, string type, SKEncodedImageFormat format)>();
                 int currentImageCounter = 1;
 
-                // --- Get Novel Metadata ---
+                // --- Process and Save File ---
                 string finalFileExtension = saveAsEpub ? ".epub" : (saveAsHtml ? ".html" : ".txt");
                 string outputPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + finalFileExtension);
                 if (File.Exists(outputPath)) File.Delete(outputPath);
 
-                var request = (HttpWebRequest)WebRequest.Create($"https://novelpia.com/novel/{novelNo}");
-                request.Method = "GET";
-                request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build=MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
-                request.Headers.Add("cookie", $"LOGINKEY={novelpia.loginkey};");
-                string responseText;
-                using (var response = (HttpWebResponse)request.GetResponse())
-                using (var streamReader = new StreamReader(response.GetResponseStream()))
-                {
-                    responseText = streamReader.ReadToEnd();
-                }
-
-                var titleMatch = Regex.Match(responseText, @"productName = '(.+?)';");
-                string title = titleMatch.Groups[1].Value;
-                var authorMatch = Regex.Match(responseText, @"<a class=""writer-name""[^>]*>\s*(.+?)\s*</a>");
-                string author = authorMatch.Success ? authorMatch.Groups[1].Value.Trim() : "Unknown Author";
-                var tagMatches = Regex.Matches(responseText, @"<span class=""tag"".*?>(#.+?)</span>");
-                List<string> tags = tagMatches.Cast<Match>().Select(m => m.Groups[1].Value.TrimStart('#')).Distinct().ToList();
-                var synopsisMatch = Regex.Match(responseText, @"<div class=""synopsis"">(.*?)</div>", RegexOptions.Singleline);
-                string synopsis = synopsisMatch.Success ? HttpUtility.HtmlDecode(synopsisMatch.Groups[1].Value.Trim()) : "No synopsis available.";
-                var completionMatch = Regex.Match(responseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
-                string status = completionMatch.Success ? completionMatch.Groups[1].Value.Trim() : (responseText.Contains(@"<span class=""s_inv"" style="".*?"">연재중단</span>") ? "연재중단" : "");
-                var coverUrlMatch = Regex.Match(responseText, @"href=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""");
-                string cover_url = coverUrlMatch.Success ? coverUrlMatch.Groups[1].Value : Regex.Match(responseText, @"src=""(//images\.novelpia\.com/imagebox/cover/.+?\.file)""").Groups[1].Value;
-
-                // --- Process and Save File ---
                 if (saveAsEpub)
                 {
                     Directory.CreateDirectory(Path.Combine(directory, "META-INF"));
@@ -344,7 +392,7 @@ namespace NovelpiaDownloader
                 {
                     Log($"Warning: Unauthorized access attempting to delete temporary directory {directory}: {ex.Message}", isHeadless);
                 }
-                Log("다운로드 완료!", isHeadless);
+                Log("Download complete!", isHeadless);
             });
             return downloadTask;
         }
