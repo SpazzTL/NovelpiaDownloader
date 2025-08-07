@@ -8,6 +8,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Net;
+using System.Linq;
 
 namespace NovelpiaDownloader
 {
@@ -174,8 +175,8 @@ namespace NovelpiaDownloader
             if (config.ContainsKey("interval_num")) IntervalNum.Value = config["interval_num"];
             if (config.ContainsKey("mapping_path")) font_mapping = new FontMapping(FontBox.Text = config["mapping_path"]);
             if (config.ContainsKey("email") && config.ContainsKey("wd"))
-                if (novelpia.Login(EmailText.Text = config["email"], PasswordText.Text = config["wd"])) Log("Login successful!");
-                else Log("Login failed!");
+                if (novelpia.Login(EmailText.Text = config["email"], PasswordText.Text = config["wd"])) Log(Localization.GetString("LoginSuccessful"));
+                else Log(Localization.GetString("LoginFailedOnInit"));
             if (config.ContainsKey("loginkey")) novelpia.loginkey = LoginkeyText.Text = config["loginkey"];
             if (config.ContainsKey("include_html_in_txt")) HtmlCheckBox.Checked = config["include_html_in_txt"];
             if (config.ContainsKey("enable_image_compression")) ImageCompressCheckBox.Checked = config["enable_image_compression"];
@@ -225,8 +226,8 @@ namespace NovelpiaDownloader
                 string presetDirectory = presetDirectoryTextBox.Text;
                 if (!Directory.Exists(presetDirectory))
                 {
-                    Log($"Error: Preset directory does not exist: {presetDirectory}");
-                    MessageBox.Show("The preset save directory does not exist. Please select a valid directory.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Log(string.Format(Localization.GetString("PresetDirectoryError"), presetDirectory));
+                    MessageBox.Show(Localization.GetString("PresetDirectoryErrorMessageBox"), Localization.GetString("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -242,33 +243,33 @@ namespace NovelpiaDownloader
                     var metadata = FetchNovelMetadata(novelNo);
                     string title = metadata["title"];
                     string status = metadata["status"];
-                    string lastChapter = metadata["lastChapter"];
 
-                    if (addChapterRangeCheckBox.Checked && status.Contains("Ongoing") && !string.IsNullOrEmpty(lastChapter))
+                    string chapterRange = "";
+                    if (addChapterRangeCheckBox.Checked && status.Contains("Ongoing"))
                     {
-                        fileName = $"{SanitizeFilename(title)}[0-{lastChapter}].{fileExtension}";
+                        int startChapter = FromCheck.Checked ? (int)FromNum.Value : 1;
+                        int endChapter = ToCheck.Checked ? (int)ToNum.Value : int.Parse(metadata["totalChapters"]);
+                        chapterRange = $"[{startChapter}-{endChapter}]";
                     }
-                    else
-                    {
-                        fileName = $"{SanitizeFilename(title)}.{fileExtension}";
-                    }
+
+                    fileName = $"{SanitizeFilename(title)}{chapterRange}.{fileExtension}";
                 }
 
                 string outputPath = Path.Combine(presetDirectory, fileName);
-                Log($"Quick Download initiated. Output path: {outputPath}");
+                Log(string.Format(Localization.GetString("QuickDownloadInitiated"), outputPath));
                 StartDownloadTask(novelNo, outputPath, fromChapter, toChapter);
             }
             else // --- Original Download Logic ---
             {
                 SaveFileDialog sfd = new SaveFileDialog
                 {
-                    Filter = saveAsEpub ? "EPUB Files|*.epub" : (HtmlCheckBox.Checked ? "HTML Files|*.html" : "Text Files|*.txt"),
+                    Filter = saveAsEpub ? Localization.GetString("FilterEPUB") : (HtmlCheckBox.Checked ? Localization.GetString("FilterHTML") : Localization.GetString("FilterTXT")),
                     DefaultExt = saveAsEpub ? "epub" : (HtmlCheckBox.Checked ? "html" : "txt")
                 };
 
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
-                    Log($"Download initiated. Output path: {sfd.FileName}");
+                    Log(string.Format(Localization.GetString("DownloadInitiated"), sfd.FileName));
                     StartDownloadTask(novelNo, sfd.FileName, fromChapter, toChapter);
                 }
             }
@@ -291,24 +292,24 @@ namespace NovelpiaDownloader
                     downloadTask.Wait();
 
                     if (File.Exists(outputPath)) { downloadSuccess = true; break; }
-                    Log($"Warning: Output file not found after download. Waiting 3 seconds...");
+                    Log(Localization.GetString("OutputFileNotFoundWarning"));
                     Thread.Sleep(3000);
 
                     if (File.Exists(outputPath)) { downloadSuccess = true; break; }
-                    if (attempt < MAX_OVERALL_RETRIES) Log($"CORRUPT OUTPUT, RETRYING! (Attempt {attempt + 1}/{MAX_OVERALL_RETRIES})");
+                    if (attempt < MAX_OVERALL_RETRIES) Log(string.Format(Localization.GetString("CorruptOutputRetry"), attempt + 1, MAX_OVERALL_RETRIES));
                 }
 
-                if (!downloadSuccess) Log("FATAL: Output file not created after all retries.");
+                if (!downloadSuccess) Log(Localization.GetString("FatalOutputError"));
                 ResetProgress();
             });
         }
 
         private void BatchDownloadButton_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Text files|*.txt", Title = "Select the Novel List File" };
+            OpenFileDialog openFileDialog = new OpenFileDialog { Filter = Localization.GetString("BatchFilter"), Title = Localization.GetString("BatchFileTitle") };
             if (openFileDialog.ShowDialog() != DialogResult.OK) return;
 
-            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog { Description = "Select the output directory for downloaded novels" };
+            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog { Description = Localization.GetString("BatchFolderDescription") };
             if (folderBrowserDialog.ShowDialog() != DialogResult.OK) return;
 
             // Gather settings to pass to batch core
@@ -331,10 +332,10 @@ namespace NovelpiaDownloader
             }
             chapterProgressBar.Maximum = chaptersTotal > 0 ? chaptersTotal : 100;
             chapterProgressBar.Value = chaptersDone > chapterProgressBar.Maximum ? chapterProgressBar.Maximum : chaptersDone;
-            string progressText = $"({chaptersDone}/{chaptersTotal} chapters)";
+            string progressText = string.Format(Localization.GetString("ProgressChapters"), chaptersDone, chaptersTotal);
             if (novelsDone.HasValue && novelsTotal.HasValue)
             {
-                progressText += $" - ({novelsDone.Value}/{novelsTotal.Value} novels)";
+                progressText += $" - {string.Format(Localization.GetString("ProgressNovels"), novelsDone.Value, novelsTotal.Value)}";
             }
             progressLabel.Text = progressText;
         }
@@ -346,7 +347,7 @@ namespace NovelpiaDownloader
                 statusStrip1.Invoke(new Action(ResetProgress));
                 return;
             }
-            progressLabel.Text = "Idle";
+            progressLabel.Text = Localization.GetString("StatusIdle");
             chapterProgressBar.Value = 0;
         }
 
@@ -354,12 +355,12 @@ namespace NovelpiaDownloader
         {
             if (novelpia.Login(EmailText.Text, PasswordText.Text))
             {
-                Log("Login successful!");
+                Log(Localization.GetString("LoginSuccessful"));
                 LoginkeyText.Text = novelpia.loginkey;
             }
             else
             {
-                Log("Login failed!");
+                Log(Localization.GetString("LoginFailed"));
             }
         }
 
@@ -369,7 +370,7 @@ namespace NovelpiaDownloader
         private void ImageCompressCheckBox_CheckedChanged(object sender, EventArgs e) => JpegQualityNum.Enabled = JpegQualityLabel.Enabled = ImageCompressCheckBox.Checked;
         private void FontButton_Click(object sender, EventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog { Filter = "|*.json" };
+            OpenFileDialog ofd = new OpenFileDialog { Filter = Localization.GetString("FontFilter") };
             if (ofd.ShowDialog() == DialogResult.OK)
                 font_mapping = new FontMapping(FontBox.Text = ofd.FileName);
         }
@@ -391,7 +392,7 @@ namespace NovelpiaDownloader
         }
         private void BrowsePresetDirectoryButton_Click(object sender, EventArgs e)
         {
-            FolderBrowserDialog fbd = new FolderBrowserDialog { Description = "Select a folder to save downloads to" };
+            FolderBrowserDialog fbd = new FolderBrowserDialog { Description = Localization.GetString("BrowseFolderDescription") };
             if (fbd.ShowDialog() == DialogResult.OK)
                 presetDirectoryTextBox.Text = fbd.SelectedPath;
         }
@@ -402,7 +403,7 @@ namespace NovelpiaDownloader
             saveAsTitleRadioButton.Checked = true;
             addChapterRangeCheckBox.Checked = false;
             quickSettingsPanel.Visible = false;
-            Log("Quick Download settings have been cleared.");
+            Log(Localization.GetString("QuickSettingsCleared"));
         }
         private void ExtensionLabel_Click(object sender, EventArgs e) { }
         private void HtmlCheckBox_CheckedChanged(object sender, EventArgs e) { }
