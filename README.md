@@ -126,8 +126,9 @@ This project is a fork of CjangCjengh's NovelpiaDownloader and is intended for p
   - **커맨드라인 인터페이스:** 자동화된 스크립트 다운로드를 위한 강력한 커맨드라인 인터페이스를 제공합니다.
   - **대량 다운로드:** 포맷팅을 수정하거나 파일 크기를 최적화하는 등의 목적으로 라이브러리를 쉽게 다시 다운로드할 수 있습니다.
   - **개선된 다운로드:** 소설 제목이 자동으로 지정되고 원하는 디렉토리에 저장되는 원클릭 다운로드를 제공합니다. 자동 재시도 및 오류 감지 기능도 포함되어 있습니다.
+  - 
+<img width="890" height="700" alt="image" src="https://github.com/user-attachments/assets/a5677839-95f5-449e-bf60-f2462ab5ad22" />
 
-\<img width="430" height="169" alt="image" src="[https://github.com/user-attachments/assets/8f98802c-80b3-476a-aa18-80ad99bcec96](https://github.com/user-attachments/assets/8f98802c-80b3-476a-aa18-80ad99bcec96)" /\>
 
 ## 🚀 사용법
 
@@ -136,7 +137,7 @@ This project is a fork of CjangCjengh's NovelpiaDownloader and is intended for p
 
 높은 스레드 수와 낮은 간격은 다운로드 속도를 높일 수 있지만, IP 차단 위험이 증가할 수 있습니다.
 *(10개 이상의 스레드를 사용하면 웹사이트에서 속도 제한이 걸려 챕터 다운로드에 실패하고, 결국 24-48시간 동안 IP가 차단될 수 있습니다.)*
-\<img width="450" height="42" alt="image" src="[https://github.com/user-attachments/assets/a702e637-1825-4e2c-923c-94def6ef06d0](https://github.com/user-attachments/assets/a702e637-1825-4e2c-923c-94def6ef06d0)" /\>
+<img width="444" height="44" alt="image" src="https://github.com/user-attachments/assets/f9c37fb0-ed3f-4653-b476-ff423b55d099" />
 
 -----
 
@@ -149,6 +150,7 @@ This project is a fork of CjangCjengh's NovelpiaDownloader and is intended for p
   - **80% 품질:** 눈에 띄는 품질 저하 없이 큰 용량 절약 (예: 1MB -\> 65KB).
   - **50% 품질:** 약간의 품질 차이만으로도 엄청난 용량 절약 (예: 1MB -\> 30KB).
   - **10-30% 품질:** 품질 차이가 눈에 띄지만, 극단적인 용량 절약 가능 (예: 1MB -\> \<10KB).
+![Comparison of uncompressed and 10% quality compressed images](https://github.com/user-attachments/assets/09161c74-92d8-4b3e-8e72-8ac574db719d)
 
 ### Calibre를 이용한 후처리
 
