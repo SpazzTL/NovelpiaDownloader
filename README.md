@@ -127,7 +127,7 @@ This project is a fork of CjangCjengh's NovelpiaDownloader and is intended for p
   - **대량 다운로드:** 포맷팅을 수정하거나 파일 크기를 최적화하는 등의 목적으로 라이브러리를 쉽게 다시 다운로드할 수 있습니다.
   - **개선된 다운로드:** 소설 제목이 자동으로 지정되고 원하는 디렉토리에 저장되는 원클릭 다운로드를 제공합니다. 자동 재시도 및 오류 감지 기능도 포함되어 있습니다.
   - 
-<img width="890" height="700" alt="image" src="https://github.com/user-attachments/assets/a5677839-95f5-449e-bf60-f2462ab5ad22" />
+<img width="886" height="701" alt="image" src="https://github.com/user-attachments/assets/fc8c966b-b6eb-4a86-9b07-119dea42ac47" />
 
 
 ## 🚀 사용법
