@@ -36,6 +36,9 @@ namespace NovelpiaDownloader
                         {
                             string title = parts[0].Trim();
                             string novelId = parts[1].Trim();
+                            // Note: Batch mode will always save by title from the list file as per its design.
+                            // The quick setting for "save as id" applies to single downloads.
+                            // We use the same sanitization logic for robustness.
                             string safeTitle = SanitizeFilename(title);
                             string fileExtension = saveAsEpub ? ".epub" : (saveAsHtml ? ".html" : ".txt");
                             string outputPath = Path.Combine(outputDirectory, $"{safeTitle}{fileExtension}");

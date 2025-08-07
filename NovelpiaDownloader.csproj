@@ -80,6 +80,7 @@
   <ItemGroup>
     <Compile Include="FontMapping.cs" />
     <Compile Include="EpubTemplate.cs" />
+    <Compile Include="Localization.cs" />
     <Compile Include="MainWin.Batch.cs">
       <SubType>Form</SubType>
     </Compile>

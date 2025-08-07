@@ -7,11 +7,69 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using SkiaSharp;
+using System.Linq;
 
 namespace NovelpiaDownloader
 {
     public partial class MainWin : Form
     {
+        /// <summary>
+        /// Fetches key metadata for a novel before downloading.
+        /// </summary>
+        private Dictionary<string, string> FetchNovelMetadata(string novelNo)
+        {
+            var metadata = new Dictionary<string, string>
+            {
+                { "title", novelNo }, // Default to novel number if fetch fails
+                { "status", "Unknown" },
+                { "lastChapter", "" }
+            };
+
+            try
+            {
+                Log($"Fetching metadata for Novel ID: {novelNo}...");
+                string pageResponseText = PostRequest($"https://novelpia.com/novel/{novelNo}", novelpia.loginkey);
+                if (string.IsNullOrEmpty(pageResponseText)) return metadata;
+
+                var titleMatch = Regex.Match(pageResponseText, @"productName = '(.+?)';");
+                if (titleMatch.Success) metadata["title"] = titleMatch.Groups[1].Value;
+
+                var completionMatch = Regex.Match(pageResponseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
+                if (completionMatch.Success)
+                {
+                    // Normalize status to English
+                    string statusKr = completionMatch.Groups[1].Value.Trim();
+                    metadata["status"] = statusKr == "완결" ? "Completed" : statusKr;
+                }
+                else
+                {
+                    metadata["status"] = "Ongoing"; // Assume ongoing if no completion tag
+                }
+
+                string listResponseText = PostRequest($"https://novelpia.com/proc/episode_list", novelpia.loginkey, $"novel_no={novelNo}&sort=DOWN&page=0");
+                if (!string.IsNullOrEmpty(listResponseText))
+                {
+                    var chapterMatch = Regex.Match(listResponseText, @"id=""bookmark_(\d+)""></i>(.+?)</b>");
+                    if (chapterMatch.Success)
+                    {
+                        string chapterName = chapterMatch.Groups[2].Value;
+                        var chapterNumMatch = Regex.Match(chapterName, @"\d+");
+                        if (chapterNumMatch.Success)
+                        {
+                            metadata["lastChapter"] = chapterNumMatch.Value;
+                        }
+                    }
+                }
+                Log("Metadata fetch complete.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Error fetching novel metadata: {ex.Message}");
+            }
+
+            return metadata;
+        }
+
         private void DownloadChapter(string chapterId, string chapterName, string jsonPath, bool isHeadless = false)
         {
             for (int i = 1; i <= MAX_DOWNLOAD_RETRIES; i++)
@@ -19,13 +77,11 @@ namespace NovelpiaDownloader
                 try
                 {
                     string resp = PostRequest($"https://novelpia.com/proc/viewer_data/{chapterId}", novelpia.loginkey, isHeadless: isHeadless);
-                    if (string.IsNullOrEmpty(resp) || resp.Contains("본인인증"))
+                    if (string.IsNullOrEmpty(resp) || resp.Contains("Authentication required")) // "본인인증"
                         throw new Exception("Authentication failed or content not available.");
 
-                    using (var file = new StreamWriter(jsonPath, false))
-                        file.Write(resp);
-
-                    Log(chapterName, isHeadless);
+                    File.WriteAllText(jsonPath, resp);
+                    Log($"Downloaded chapter: {chapterName}", isHeadless);
                     return;
                 }
                 catch (Exception ex)
@@ -38,7 +94,8 @@ namespace NovelpiaDownloader
                     }
                     else
                     {
-                        Log($" Retries Disabled or All retries failed for chapter: {chapterName}. It will be missing from the output.", isHeadless);
+                        Log($"All retries failed for chapter: {chapterName}. It will be missing from the output.", isHeadless);
+                        break;
                     }
                 }
             }
@@ -52,7 +109,7 @@ namespace NovelpiaDownloader
             {
                 try
                 {
-                    Log($"{type} 다운로드 시작\r\n{url}", isHeadless);
+                    Log($"Downloading {type}: {url}", isHeadless);
                     string directory = Path.GetDirectoryName(path);
                     if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
@@ -69,21 +126,21 @@ namespace NovelpiaDownloader
                                 {
                                     if (encodedData == null) throw new Exception($"SkiaSharp could not encode the image to {format}.");
                                     File.WriteAllBytes(path, encodedData.ToArray());
-                                    Log($"{type} (압축됨, 품질: {jpegQuality}%, 형식: {format}) 다운로드 완료!", isHeadless);
+                                    Log($"Downloaded {type} (Compressed, Quality: {jpegQuality}%, Format: {format})", isHeadless);
                                 }
                             }
                         }
                         else
                         {
                             File.WriteAllBytes(path, imageStream.ToArray());
-                            Log($"{type} 다운로드 완료!", isHeadless);
+                            Log($"Downloaded {type} successfully.", isHeadless);
                         }
                     }
                     return;
                 }
                 catch (Exception ex)
                 {
-                    Log($"IMAGE FAILED! ({type}) (Attempt {i}/{MAX_DOWNLOAD_RETRIES}): {ex.Message}\r\n{url}", isHeadless);
+                    Log($"IMAGE FAILED! ({type}) (Attempt {i}/{MAX_DOWNLOAD_RETRIES}): {ex.Message}\r\nURL: {url}", isHeadless);
                     if (i < MAX_DOWNLOAD_RETRIES)
                     {
                         Log("RETRYING!", isHeadless);
@@ -92,6 +149,7 @@ namespace NovelpiaDownloader
                     else
                     {
                         Log($"All retries failed for image: {url}. It will be missing from the output.", isHeadless);
+                        break;
                     }
                 }
             }
@@ -114,8 +172,8 @@ namespace NovelpiaDownloader
             try
             {
                 var request = (HttpWebRequest)WebRequest.Create(url);
-                request.Method = "POST";
-                request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build=MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
+                request.Method = string.IsNullOrEmpty(data) ? "GET" : "POST";
+                request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36";
                 request.ContentType = "application/x-www-form-urlencoded; charset=UTF-8";
                 request.Headers.Add("cookie", $"LOGINKEY={loginkey};");
                 if (!string.IsNullOrEmpty(data))
