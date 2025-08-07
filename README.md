@@ -1,4 +1,4 @@
-(ALl credit goes to @[CjangCjengh](https://github.com/CjangCjengh))
+(All credit goes to @[CjangCjengh](https://github.com/CjangCjengh))
 
 # [한국어](https://www.google.com/search?q=%23korean-%EB%B2%84%EC%A0%84)
 
