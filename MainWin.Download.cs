@@ -272,8 +272,8 @@ namespace NovelpiaDownloader
                                 var textDict = (Dictionary<string, object>)text;
                                 string textStr = (string)textDict["text"];
                                 // Fix: Remove hidden paragraphs and cover-wrapper.
-                                textStr = Regex.Replace(textStr, @"<p\s*>\s*<div\s+class='cover-wrapper'[\s\S]*?</div>\s*</p>\s*(?:<p>&nbsp;</p>\s*)*", string.Empty, RegexOptions.Singleline);
-                                textStr = Regex.Replace(textStr, @"<p\s+style=[\""'][^\""']*?(?:display:\s*none|opacity:\s*0|height:\s*0px)[^\""']*?[\""']\s*?>.*?<\/p>", string.Empty, RegexOptions.Singleline);
+                                textStr = Regex.Replace(textStr, @"<p>\s*&nbsp;\s*</p>\s*<p><div\s+class='cover-wrapper'[\s\S]*?</div>\s*</p>\s*(<p>&nbsp;</p>\s*)*", string.Empty, RegexOptions.Singleline);
+                                // This regex removes any <p> tags with style attributes that hide content (opacity:0, height:0px, display:none)
                                 if (saveAsHtml)
                                 {
                                     var imgMatch = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
