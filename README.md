@@ -2,6 +2,8 @@
 
 # [한국어](https://www.google.com/search?q=%23korean-%EB%B2%84%EC%A0%84)
 
+# Major Code Rewrite In Progress | 대규모 코드 재작업 진행 중
+
 # NovelpiaDownloader Enhanced Fork
 
 A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/NovelpiaDownloader) that enhances the user experience and output quality. This version adds comprehensive metadata (tags, author, synopsis), improves EPUB formatting with HTML tag and newline support, includes file size optimization, and much more\!
