@@ -12,12 +12,12 @@ A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/Nove
 
 ## 📚 Table of Contents
 
-  - [✨ Features](https://www.google.com/search?q=%23-features)
-  - [🚀 Usage](https://www.google.com/search?q=%23-usage)
-  - [💾 Space-Saving Tips](https://www.google.com/search?q=%23-space-saving-tips)
-  - [🛠️ Command-Line Arguments](https://www.google.com/search?q=%23%EF%B8%8F-command-line-arguments)
-  - [❓ FAQ (Frequently Asked Questions)](https://www.google.com/search?q=%23-faq-frequently-asked-questions)
-  - [📜 Legal & Disclaimer](https://www.google.com/search?q=%23-legal--disclaimer)
+  - [✨ Features]
+  - [🚀 Usage]
+  - [💾 Space-Saving Tips]
+  - [🛠️ Command-Line Arguments]
+  - [❓ FAQ (Frequently Asked Questions]
+  - [📜 Legal & Disclaimer]
 
 -----
 
@@ -116,12 +116,12 @@ This project is a fork of CjangCjengh's NovelpiaDownloader and is intended for p
 
 ## 📚 목차
 
-  - [✨ 기능](https://www.google.com/search?q=%23-features)
-  - [🚀 사용법](https://www.google.com/search?q=%23-usage)
-  - [💾 공간 절약 팁](https://www.google.com/search?q=%23-space-saving-tips)
-  - [🛠️ 커맨드라인 인수](https://www.google.com/search?q=%23%EF%B8%8F-command-line-arguments)
-  - [❓ FAQ (자주 묻는 질문)](https://www.google.com/search?q=%23-faq-frequently-asked-questions)
-  - [📜 법률 및 면책 조항](https://www.google.com/search?q=%23-legal--disclaimer)
+  - [✨ 기능]
+  - [🚀 사용법]
+  - [💾 공간 절약 팁]
+  - [🛠️ 커맨드라인 인수]
+  - [❓ FAQ (자주 묻는 질문)]
+  - [📜 법률 및 면책 조항]
 
 -----
 
