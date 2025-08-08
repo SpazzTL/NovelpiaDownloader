@@ -533,9 +533,9 @@ namespace NovelpiaDownloader
             this.versionLabel.AutoSize = true;
             this.versionLabel.Location = new System.Drawing.Point(846, 562);
             this.versionLabel.Name = "versionLabel";
-            this.versionLabel.Size = new System.Drawing.Size(32, 15);
+            this.versionLabel.Size = new System.Drawing.Size(42, 15);
             this.versionLabel.TabIndex = 18;
-            this.versionLabel.Text = "V5.0";
+            this.versionLabel.Text = "V5.0.2";
             this.versionLabel.Click += new System.EventHandler(this.versionLabel_Click);
             // 
             // MainWin
@@ -563,7 +563,7 @@ namespace NovelpiaDownloader
             this.MaximizeBox = false;
             this.Name = "MainWin";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "NovelpiaDownloader V5.0";
+            this.Text = "NovelpiaDownloader V5.0.2";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainWin_FormClosed);
             this.LoginGroup.ResumeLayout(false);
             this.LoginGroup.PerformLayout();

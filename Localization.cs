@@ -16,7 +16,7 @@ namespace NovelpiaDownloader
         private static readonly Dictionary<string, string> EnglishStrings = new Dictionary<string, string>
         {
             // Main Window
-            {"FormTitle", "Novelpia Downloader V5.0"},
+            {"FormTitle", "Novelpia Downloader V5.0.2"},
             {"ToggleLanguage", "언어 전환 (Toggle Lang)"},
 
             // Login Group

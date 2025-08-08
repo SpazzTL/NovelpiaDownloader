@@ -185,13 +185,19 @@ namespace NovelpiaDownloader
                         string temp = Path.GetFileNameWithoutExtension(s.Item2);
                         using (var file = new StreamWriter(Path.Combine(directory, "OEBPS", "Text", $"chapter{temp}.html")))
                         {
-                            file.Write($"<!DOCTYPE html><html><head><title>{s.Item1}</title><link rel=\"stylesheet\" type=\"text/css\" href=\"../Styles/Stylesheet.css\" /></head><body>\n<h1>{s.Item1}</h1>\n<p>&nbsp;</p>\n");
+                            file.Write($"<!DOCTYPE html><html><head><title>{s.Item1}</title><link rel=\"stylesheet\" type=\"text/css\" href=\"../Styles/Stylesheet.css\" /></head><body>\n<h1>{s.Item1}</h1>\n");
                             var serializer = new JavaScriptSerializer();
                             var texts = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(s.Item2, Encoding.UTF8));
                             foreach (var text in (ArrayList)texts["s"])
                             {
                                 var textDict = (Dictionary<string, object>)text;
                                 string textStr = HttpUtility.HtmlDecode((string)textDict["text"]);
+                                // Fix: Remove hidden paragraphs and cover-wrapper.
+                                
+                                textStr = Regex.Replace(textStr, @"<p>\s*&nbsp;\s*</p>\s*<p><div\s+class='cover-wrapper'[\s\S]*?</div>\s*</p>\s*(<p>&nbsp;</p>\s*)*", string.Empty, RegexOptions.Singleline);
+                                // This regex removes any <p> tags with style attributes that hide content (opacity:0, height:0px, display:none)
+                                textStr = Regex.Replace(textStr, @"<p\s+style=[\""'][^\""']*?(?:display:\s*none|opacity:\s*0|height:\s*0px)[^\""']*?[\""']\s*?>.*?<\/p>", string.Empty, RegexOptions.Singleline);
+
                                 var imgMatch = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
                                 if (imgMatch.Success && !textStr.Contains("cover-wrapper"))
                                 {
@@ -265,6 +271,9 @@ namespace NovelpiaDownloader
                             {
                                 var textDict = (Dictionary<string, object>)text;
                                 string textStr = (string)textDict["text"];
+                                // Fix: Remove hidden paragraphs and cover-wrapper.
+                                textStr = Regex.Replace(textStr, @"<p\s*>\s*<div\s+class='cover-wrapper'[\s\S]*?</div>\s*</p>\s*(?:<p>&nbsp;</p>\s*)*", string.Empty, RegexOptions.Singleline);
+                                textStr = Regex.Replace(textStr, @"<p\s+style=[\""'][^\""']*?(?:display:\s*none|opacity:\s*0|height:\s*0px)[^\""']*?[\""']\s*?>.*?<\/p>", string.Empty, RegexOptions.Singleline);
                                 if (saveAsHtml)
                                 {
                                     var imgMatch = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
