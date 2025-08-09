@@ -29,6 +29,7 @@ A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/Nove
   - **Command-Line Interface:** Offers a robust command-line interface for automated and scripted downloads.
   - **Bulk Downloads:** Allows you to easily redownload your library to fix formatting, optimize file sizes, and more. (Format is ``outputname, id`` with each novel on a new line.) 
   - **Improved Downloads:** Offers one-click downloads, with novels automatically named and placed in whichever directory you choose. Also includes auto-retries and error detection.
+  - **Author Notices Support:** Download author notices and illustrations ! 
 
 <img width="880" height="698" alt="image" src="https://github.com/user-attachments/assets/81b5a264-cc22-4f82-8a4b-341d342c9fc3" />
 
