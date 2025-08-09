@@ -1,6 +1,6 @@
 (All credit goes to @[CjangCjengh](https://github.com/CjangCjengh))
 
-# [한국어](https://www.google.com/search?q=%23korean-%EB%B2%84%EC%A0%84)
+# [한국어]
 
 # Major Code Rewrite In Progress | 대규모 코드 재작업 진행 중
 
