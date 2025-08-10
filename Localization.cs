@@ -38,8 +38,8 @@ namespace NovelpiaDownloader
             // Download Group
             {"DownloadGroup", "Download"},
             {"NovelIdLabel", "Novel ID"},
-            {"DownloadRangeLabel", "Download Range"},
-            {"FromLabel", "From "},
+            {"DownloadRangeLabel", "From"},
+            //{"FromLabel", "From "},
             {"ToLabel", "To "},
             {"FormatLabel", "Format"},
             {"OptionsLabel", "Options"},
@@ -166,8 +166,8 @@ namespace NovelpiaDownloader
             // Download Group
             {"DownloadGroup", "다운로드"},
             {"NovelIdLabel", "소설 번호"},
-            {"DownloadRangeLabel", "다운로드 범위"},
-            {"FromLabel", "부터"},
+            {"DownloadRangeLabel", "부터"},
+            //{"FromLabel", "부터"},
             {"ToLabel", "까지"},
             {"FormatLabel", "포맷"},
             {"OptionsLabel", "옵션"},

@@ -136,7 +136,6 @@ namespace NovelpiaDownloader
             DownloadGroup.Text = Localization.GetString("DownloadGroup");
             NovelNoLable.Text = Localization.GetString("NovelIdLabel");
             FromCheck.Text = Localization.GetString("DownloadRangeLabel"); // Combined Label
-            FromLabel.Text = Localization.GetString("FromLabel");
             ToLabel.Text = Localization.GetString("ToLabel");
             ExtensionLabel.Text = Localization.GetString("FormatLabel");
             // Options are not in a groupbox
@@ -365,7 +364,7 @@ namespace NovelpiaDownloader
         }
 
         private void LoginButton2_Click(object sender, EventArgs e) => novelpia.loginkey = LoginkeyText.Text;
-        private void FromCheck_CheckedChanged(object sender, EventArgs e) => FromNum.Enabled = FromLabel.Enabled = FromCheck.Checked;
+        private void FromCheck_CheckedChanged(object sender, EventArgs e) => FromNum.Enabled  = FromCheck.Checked;
         private void ToCheck_CheckedChanged(object sender, EventArgs e) => ToNum.Enabled = ToLabel.Enabled = ToCheck.Checked;
         private void ImageCompressCheckBox_CheckedChanged(object sender, EventArgs e) => JpegQualityNum.Enabled = JpegQualityLabel.Enabled = ImageCompressCheckBox.Checked;
         private void FontButton_Click(object sender, EventArgs e)

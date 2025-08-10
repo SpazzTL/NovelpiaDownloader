@@ -38,7 +38,6 @@ namespace NovelpiaDownloader
             this.ToLabel = new System.Windows.Forms.Label();
             this.ToNum = new System.Windows.Forms.NumericUpDown();
             this.ToCheck = new System.Windows.Forms.CheckBox();
-            this.FromLabel = new System.Windows.Forms.Label();
             this.FromNum = new System.Windows.Forms.NumericUpDown();
             this.FromCheck = new System.Windows.Forms.CheckBox();
             this.DownloadButton = new System.Windows.Forms.Button();
@@ -167,7 +166,6 @@ namespace NovelpiaDownloader
             this.DownloadGroup.Controls.Add(this.ToLabel);
             this.DownloadGroup.Controls.Add(this.ToNum);
             this.DownloadGroup.Controls.Add(this.ToCheck);
-            this.DownloadGroup.Controls.Add(this.FromLabel);
             this.DownloadGroup.Controls.Add(this.FromNum);
             this.DownloadGroup.Controls.Add(this.FromCheck);
             this.DownloadGroup.Controls.Add(this.DownloadButton);
@@ -299,20 +297,10 @@ namespace NovelpiaDownloader
             this.ToCheck.UseVisualStyleBackColor = true;
             this.ToCheck.CheckedChanged += new System.EventHandler(this.ToCheck_CheckedChanged);
             // 
-            // FromLabel
-            // 
-            this.FromLabel.AutoSize = true;
-            this.FromLabel.Enabled = false;
-            this.FromLabel.Location = new System.Drawing.Point(128, 67);
-            this.FromLabel.Name = "FromLabel";
-            this.FromLabel.Size = new System.Drawing.Size(35, 15);
-            this.FromLabel.TabIndex = 13;
-            this.FromLabel.Text = "From";
-            // 
             // FromNum
             // 
             this.FromNum.Enabled = false;
-            this.FromNum.Location = new System.Drawing.Point(53, 63);
+            this.FromNum.Location = new System.Drawing.Point(82, 65);
             this.FromNum.Maximum = new decimal(new int[] {
             100000,
             0,
@@ -335,11 +323,11 @@ namespace NovelpiaDownloader
             // FromCheck
             // 
             this.FromCheck.AutoSize = true;
-            this.FromCheck.Location = new System.Drawing.Point(14, 43);
+            this.FromCheck.Location = new System.Drawing.Point(22, 65);
             this.FromCheck.Name = "FromCheck";
-            this.FromCheck.Size = new System.Drawing.Size(118, 19);
+            this.FromCheck.Size = new System.Drawing.Size(54, 19);
             this.FromCheck.TabIndex = 11;
-            this.FromCheck.Text = "Download Range";
+            this.FromCheck.Text = "From";
             this.FromCheck.UseVisualStyleBackColor = true;
             this.FromCheck.CheckedChanged += new System.EventHandler(this.FromCheck_CheckedChanged);
             // 
@@ -607,7 +595,6 @@ namespace NovelpiaDownloader
         private System.Windows.Forms.NumericUpDown IntervalNum;
         private System.Windows.Forms.NumericUpDown FromNum;
         private System.Windows.Forms.CheckBox FromCheck;
-        private System.Windows.Forms.Label FromLabel;
         private System.Windows.Forms.Label ToLabel;
         private System.Windows.Forms.NumericUpDown ToNum;
         private System.Windows.Forms.CheckBox ToCheck;
