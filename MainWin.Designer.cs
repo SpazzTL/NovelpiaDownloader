@@ -28,9 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainWin));
             LoginGroupBox = new AcrylicUI.Controls.AcrylicGroupBox();
             loginButton2 = new AcrylicUI.Controls.AcrylicButton();
-            logicButton1 = new AcrylicUI.Controls.AcrylicButton();
+            loginButton1 = new AcrylicUI.Controls.AcrylicButton();
             emailTextBox = new AcrylicUI.Controls.AcrylicTextBox();
             loginkeyTextBox = new AcrylicUI.Controls.AcrylicTextBox();
             passwordTextBox = new AcrylicUI.Controls.AcrylicTextBox();
@@ -78,6 +79,7 @@
             novelidLabel = new AcrylicUI.Controls.AcrylicLabel();
             novelidTextBox = new AcrylicUI.Controls.AcrylicTextBox();
             consoleTextBox = new AcrylicUI.Controls.AcrylicTextBox();
+            languageButton = new AcrylicUI.Controls.AcrylicButton();
             LoginGroupBox.SuspendLayout();
             miscellaneousGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)intervalNumeric).BeginInit();
@@ -98,7 +100,7 @@
             LoginGroupBox.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             LoginGroupBox.BackColor = SystemColors.ControlDarkDark;
             LoginGroupBox.Controls.Add(loginButton2);
-            LoginGroupBox.Controls.Add(logicButton1);
+            LoginGroupBox.Controls.Add(loginButton1);
             LoginGroupBox.Controls.Add(emailTextBox);
             LoginGroupBox.Controls.Add(loginkeyTextBox);
             LoginGroupBox.Controls.Add(passwordTextBox);
@@ -128,20 +130,20 @@
             loginButton2.UseVisualStyleBackColor = false;
             loginButton2.Click += loginButton2_Click;
             // 
-            // logicButton1
+            // loginButton1
             // 
-            logicButton1.Default = false;
-            logicButton1.Font = new Font("Segoe UI", 12F);
-            logicButton1.Image = null;
-            logicButton1.ImagePadding = 5;
-            logicButton1.Location = new Point(268, 29);
-            logicButton1.Name = "logicButton1";
-            logicButton1.Padding = new Padding(5);
-            logicButton1.Size = new Size(98, 52);
-            logicButton1.TabIndex = 3;
-            logicButton1.Text = "Login";
-            logicButton1.UseVisualStyleBackColor = false;
-            logicButton1.Click += logicButton1_Click;
+            loginButton1.Default = false;
+            loginButton1.Font = new Font("Segoe UI", 12F);
+            loginButton1.Image = null;
+            loginButton1.ImagePadding = 5;
+            loginButton1.Location = new Point(268, 29);
+            loginButton1.Name = "loginButton1";
+            loginButton1.Padding = new Padding(5);
+            loginButton1.Size = new Size(98, 52);
+            loginButton1.TabIndex = 3;
+            loginButton1.Text = "Login";
+            loginButton1.UseVisualStyleBackColor = false;
+            loginButton1.Click += logicButton1_Click;
             // 
             // emailTextBox
             // 
@@ -683,13 +685,27 @@
             consoleTextBox.BorderStyle = BorderStyle.FixedSingle;
             consoleTextBox.Cursor = Cursors.IBeam;
             consoleTextBox.ForeColor = Color.FromArgb(245, 245, 245);
-            consoleTextBox.Location = new Point(457, 12);
+            consoleTextBox.Location = new Point(513, 12);
             consoleTextBox.Multiline = true;
             consoleTextBox.Name = "consoleTextBox";
             consoleTextBox.ReadOnly = true;
             consoleTextBox.ScrollBars = ScrollBars.Vertical;
             consoleTextBox.Size = new Size(394, 653);
             consoleTextBox.TabIndex = 2;
+            // 
+            // languageButton
+            // 
+            languageButton.Default = false;
+            languageButton.Image = null;
+            languageButton.ImagePadding = 5;
+            languageButton.Location = new Point(800, 666);
+            languageButton.Name = "languageButton";
+            languageButton.Padding = new Padding(5);
+            languageButton.Size = new Size(107, 32);
+            languageButton.TabIndex = 3;
+            languageButton.Text = "Language";
+            languageButton.UseVisualStyleBackColor = false;
+            languageButton.Click += languageButton_Click;
             // 
             // MainWin
             // 
@@ -698,14 +714,16 @@
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
             BackColor = SystemColors.ControlDarkDark;
-            ClientSize = new Size(889, 700);
+            ClientSize = new Size(914, 703);
+            Controls.Add(languageButton);
             Controls.Add(consoleTextBox);
             Controls.Add(downloadGroupBox);
             Controls.Add(miscellaneousGroupBox);
             Controls.Add(LoginGroupBox);
             HelpButton = true;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainWin";
-            Text = "MainWin";
+            Text = "Novelpia Downloader";
             LoginGroupBox.ResumeLayout(false);
             LoginGroupBox.PerformLayout();
             miscellaneousGroupBox.ResumeLayout(false);
@@ -740,7 +758,7 @@
         private AcrylicUI.Controls.AcrylicTextBox loginkeyTextBox;
         private AcrylicUI.Controls.AcrylicTextBox passwordTextBox;
         private AcrylicUI.Controls.AcrylicButton loginButton2;
-        private AcrylicUI.Controls.AcrylicButton logicButton1;
+        private AcrylicUI.Controls.AcrylicButton loginButton1;
         private AcrylicUI.Controls.AcrylicGroupBox miscellaneousGroupBox;
         private AcrylicUI.Controls.AcrylicGroupBox downloadGroupBox;
         private AcrylicUI.Controls.AcrylicTextBox consoleTextBox;
@@ -781,5 +799,6 @@
         private RadioButton saveIDRadioButton;
         private RadioButton saveTitleRadioButton;
         private AcrylicUI.Controls.AcrylicCheckBox appendCheckBox;
+        private AcrylicUI.Controls.AcrylicButton languageButton;
     }
 }

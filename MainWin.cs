@@ -23,7 +23,6 @@ namespace NovelpiaDownloaderEnhanced
             novelpia = new Novelpia();
         }
 
-
         private void downloadOptionsButton_Click(object sender, EventArgs e)
         {
             if (downloadOptionsPanel.Visible)
@@ -44,19 +43,37 @@ namespace NovelpiaDownloaderEnhanced
             string password = passwordTextBox.Text;
             if (novelpia.Login(email, password))
             {
-                consoleTextBox.AppendText("Login Success!\r\n");
+                Log(Helpers.GetLocalizedStringOrDefault("LoginSuccess", "Login successful!"));
                 loginkeyTextBox.Text = novelpia.loginkey;
             }
             else
             {
-                consoleTextBox.AppendText("Login Failed!\r\n");
+                Log(Helpers.GetLocalizedStringOrDefault("LoginFailed", "Login failed!"));
             }
         }
         //Login with LoginKey
         private void loginButton2_Click(object sender, EventArgs e)
         {
             novelpia.loginkey = loginkeyTextBox.Text;
-            consoleTextBox.AppendText("Login Attempted!\r\n");
+            Log(Helpers.GetLocalizedStringOrDefault("LoginAttempted", "Login attempted!"));
+        }
+
+        private void languageButton_Click(object sender, EventArgs e)
+        {
+            Localization.CurrentLanguage = (Localization.CurrentLanguage == Language.English) ? Language.Korean : Language.English;
+            ApplyLocalization();
+        }
+
+
+
+        private void ApplyLocalization()
+        {
+            this.Text = Localization.GetString("FormTitle");
+            languageButton.Text = Localization.GetString("LanguageButton");
+            downloadOptionsButton.Text = Helpers.GetLocalizedStringOrDefault("DownloadOptions", "Download Options");
+            loginButton1.Text = Helpers.GetLocalizedStringOrDefault("Login", "Login");
+            loginButton2.Text = Helpers.GetLocalizedStringOrDefault("Login", "Login");
+           
         }
     }
 }
