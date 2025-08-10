@@ -16,7 +16,7 @@ namespace NovelpiaDownloaderEnhanced
     public partial class MainWin : Form
     {
         private Novelpia novelpia;
-        private AppSettings _appSettings; 
+        private AppSettings _appSettings;
 
         // --- Constants ---
         private const int MAX_DOWNLOAD_RETRIES = 3;
@@ -29,7 +29,7 @@ namespace NovelpiaDownloaderEnhanced
             novelpia = new Novelpia();
             Logger.ConsoleTextBox = consoleTextBox;
 
-            
+
             _appSettings = AppSettings.Load(); // Load settings from config.json
             ApplySettingsToUI(); //Apply Ui Settings
         }
@@ -222,6 +222,22 @@ namespace NovelpiaDownloaderEnhanced
                     downloader.DownloadCore(novelID, saveAsEpub, sfd.FileName, fromChapter, toChapter, enableImageCompression, compressionQuality, downloadNotices, downloadIllustrations, retryChapters, appendChapters);
                 }
             }
+        }
+
+        private void resetConfig_Click(object sender, EventArgs e)
+        {
+            // Create a new instance of AppSettings, which will have default values.
+            _appSettings = new AppSettings();
+
+            // Save the new default settings to the config file.
+            _appSettings.Save();
+
+            // Apply the new default settings to the UI.
+            ApplySettingsToUI();
+
+            // Log a message to inform the user.
+            Logger.Log(Helpers.GetLocalizedStringOrDefault("ResetConfigSuccess", "Configuration has been reset to default settings."));
+
         }
     }
 }

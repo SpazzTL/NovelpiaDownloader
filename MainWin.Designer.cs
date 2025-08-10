@@ -80,6 +80,7 @@
             novelidTextBox = new AcrylicUI.Controls.AcrylicTextBox();
             consoleTextBox = new AcrylicUI.Controls.AcrylicTextBox();
             languageButton = new AcrylicUI.Controls.AcrylicButton();
+            resetConfig = new AcrylicUI.Controls.AcrylicButton();
             LoginGroupBox.SuspendLayout();
             miscellaneousGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)intervalNumeric).BeginInit();
@@ -707,6 +708,20 @@
             languageButton.UseVisualStyleBackColor = false;
             languageButton.Click += languageButton_Click;
             // 
+            // resetConfig
+            // 
+            resetConfig.Default = false;
+            resetConfig.Image = null;
+            resetConfig.ImagePadding = 5;
+            resetConfig.Location = new Point(687, 666);
+            resetConfig.Name = "resetConfig";
+            resetConfig.Padding = new Padding(5);
+            resetConfig.Size = new Size(107, 32);
+            resetConfig.TabIndex = 3;
+            resetConfig.Text = "Reset Config";
+            resetConfig.UseVisualStyleBackColor = false;
+            resetConfig.Click += resetConfig_Click;
+            // 
             // MainWin
             // 
             AllowDrop = true;
@@ -716,6 +731,7 @@
             BackColor = SystemColors.ControlDarkDark;
             ClientSize = new Size(914, 703);
             Controls.Add(downloadOptionsPanel);
+            Controls.Add(resetConfig);
             Controls.Add(languageButton);
             Controls.Add(consoleTextBox);
             Controls.Add(downloadGroupBox);
@@ -801,5 +817,6 @@
         private RadioButton saveTitleRadioButton;
         private AcrylicUI.Controls.AcrylicCheckBox appendCheckBox;
         private AcrylicUI.Controls.AcrylicButton languageButton;
+        private AcrylicUI.Controls.AcrylicButton resetConfig;
     }
 }
