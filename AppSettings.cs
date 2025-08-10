@@ -22,9 +22,10 @@ namespace NovelpiaDownloaderEnhanced
         // --- Download Options ---
         public bool QuickDownloadEnabled { get; set; } = false;
         public string PresetOutputDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NovelpiaDownloads");
+        public string LastNovelID { get; set; } = string.Empty;
         public bool SaveAsEpub { get; set; } = true;
         public bool EnableImageCompression { get; set; } = true;
-        public int CompressionQuality { get; set; } = 50; // Default between 0-100
+        public int CompressionQuality { get; set; } = 50; // Default 50
         public bool DownloadNotices { get; set; } = false;
         public bool DownloadIllustrations { get; set; } = true;
         public bool RetryChapters { get; set; } = true;
@@ -34,6 +35,9 @@ namespace NovelpiaDownloaderEnhanced
         public bool ToChapterEnabled { get; set; } = false;
         public int ToChapterValue { get; set; } = 0; 
         public bool SaveIDAsFilename { get; set; } = true;
+
+        public int threadCount { get; set; } = 1;
+        public int threadInterval { get; set; } = 0;
 
         /// <summary>
         /// Loads application settings from config.json. If the file doesn't exist or loading fails,
@@ -49,7 +53,7 @@ namespace NovelpiaDownloaderEnhanced
                     AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json);
                     if (settings != null)
                     {
-                        Logger.Log("Settings loaded successfully from config.json.");
+                        //Logger.Log("Settings loaded successfully from config.json.");
                         return settings;
                     }
                 }
@@ -78,7 +82,7 @@ namespace NovelpiaDownloaderEnhanced
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string json = JsonSerializer.Serialize(this, options);
                 File.WriteAllText(ConfigFilePath, json);
-                Logger.Log("Settings saved to config.json.");
+                //Logger.Log("Settings saved to config.json.");
             }
             catch (JsonException ex)
             {

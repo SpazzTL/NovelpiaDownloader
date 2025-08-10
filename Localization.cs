@@ -28,10 +28,11 @@ namespace NovelpiaDownloaderEnhanced
             {"PasswordLabel", "Password:"},
             {"LoginKeyLabel", "Login Key:"},
             {"Login", "Login"},
-            {"DownloadInitiated", "Download Initiated"},
+            {"DownloadInitiated", "Download Initiated for Novel ID : {0} | {1}"},
             {"FatalOutputError", "!!!Fatal Error Saving Epub!!!" },
             {"FilterEPUB", "EPUB files (*.epub)|*.epub|All files (*.*)|*.*"},
-            {"FilterTXT", "Text files (*.txt)|*.txt|All files (*.*)|*.*"}
+            {"FilterTXT", "Text files (*.txt)|*.txt|All files (*.*)|*.*"},
+
         };
 
         private static readonly Dictionary<string, string> KoreanStrings = new Dictionary<string, string>

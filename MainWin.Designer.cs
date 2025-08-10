@@ -235,6 +235,7 @@
             intervalNumeric.Name = "intervalNumeric";
             intervalNumeric.Size = new Size(54, 23);
             intervalNumeric.TabIndex = 4;
+            intervalNumeric.ValueChanged += intervalNumeric_ValueChanged;
             // 
             // threadNumeric
             // 
@@ -242,6 +243,7 @@
             threadNumeric.Name = "threadNumeric";
             threadNumeric.Size = new Size(54, 23);
             threadNumeric.TabIndex = 4;
+            threadNumeric.ValueChanged += threadNumeric_ValueChanged;
             // 
             // fontmappingButton
             // 
@@ -387,6 +389,7 @@
             browseButton.TabIndex = 3;
             browseButton.Text = "Browse";
             browseButton.UseVisualStyleBackColor = false;
+            browseButton.Click += browseButton_Click;
             // 
             // acrylicLabel1
             // 
@@ -686,12 +689,12 @@
             consoleTextBox.BorderStyle = BorderStyle.FixedSingle;
             consoleTextBox.Cursor = Cursors.IBeam;
             consoleTextBox.ForeColor = Color.FromArgb(245, 245, 245);
-            consoleTextBox.Location = new Point(513, 12);
+            consoleTextBox.Location = new Point(436, 12);
             consoleTextBox.Multiline = true;
             consoleTextBox.Name = "consoleTextBox";
             consoleTextBox.ReadOnly = true;
             consoleTextBox.ScrollBars = ScrollBars.Vertical;
-            consoleTextBox.Size = new Size(394, 653);
+            consoleTextBox.Size = new Size(471, 653);
             consoleTextBox.TabIndex = 2;
             // 
             // languageButton

@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Net;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace NovelpiaDownloaderEnhanced
 {
@@ -29,9 +27,11 @@ namespace NovelpiaDownloaderEnhanced
             novelpia = new Novelpia();
             Logger.ConsoleTextBox = consoleTextBox;
 
+            _appSettings = AppSettings.Load();
+            ApplySettingsToUI();
 
-            _appSettings = AppSettings.Load(); // Load settings from config.json
-            ApplySettingsToUI(); //Apply Ui Settings
+            // Set the novelpia loginkey from the loaded settings
+            novelpia.loginkey = _appSettings.LoginKey;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -44,11 +44,10 @@ namespace NovelpiaDownloaderEnhanced
         {
             _appSettings.LoginKey = loginkeyTextBox.Text;
             _appSettings.LastEmail = emailTextBox.Text;
-
             _appSettings.CurrentLanguage = Localization.CurrentLanguage;
-
             _appSettings.QuickDownloadEnabled = quickdownloadCheckBox.Checked;
             _appSettings.PresetOutputDirectory = presetOuputDirectoryTextBox.Text;
+            _appSettings.LastNovelID = novelidTextBox.Text;
             _appSettings.SaveAsEpub = epubRadioButton.Checked;
             _appSettings.EnableImageCompression = compressCheckBox.Checked;
             _appSettings.CompressionQuality = (int)compressNumeric.Value;
@@ -61,6 +60,8 @@ namespace NovelpiaDownloaderEnhanced
             _appSettings.ToChapterEnabled = toChapterCheckBox.Checked;
             _appSettings.ToChapterValue = (int)toChapterNumeric.Value;
             _appSettings.SaveIDAsFilename = saveIDRadioButton.Checked;
+            _appSettings.threadCount = (int)threadNumeric.Value;
+            _appSettings.threadInterval = (int)intervalNumeric.Value;
 
             _appSettings.Save();
         }
@@ -69,10 +70,9 @@ namespace NovelpiaDownloaderEnhanced
         {
             loginkeyTextBox.Text = _appSettings.LoginKey;
             emailTextBox.Text = _appSettings.LastEmail;
-
+            novelidTextBox.Text = _appSettings.LastNovelID;
             Localization.CurrentLanguage = _appSettings.CurrentLanguage;
             ApplyLocalization();
-
             quickdownloadCheckBox.Checked = _appSettings.QuickDownloadEnabled;
             presetOuputDirectoryTextBox.Text = _appSettings.PresetOutputDirectory;
             epubRadioButton.Checked = _appSettings.SaveAsEpub;
@@ -89,9 +89,10 @@ namespace NovelpiaDownloaderEnhanced
             toChapterNumeric.Value = _appSettings.ToChapterValue;
             saveIDRadioButton.Checked = _appSettings.SaveIDAsFilename;
             saveTitleRadioButton.Checked = !_appSettings.SaveIDAsFilename;
-
-            downloadOptionsPanel.Visible = _appSettings.QuickDownloadEnabled;
-            downloadOptionsButton.Text = _appSettings.QuickDownloadEnabled ? Helpers.GetLocalizedStringOrDefault("Hide", "Hide") : Helpers.GetLocalizedStringOrDefault("DownloadOptions", "Download Options");
+            downloadOptionsPanel.Visible = false;
+            downloadOptionsButton.Text = downloadOptionsPanel.Visible ? Helpers.GetLocalizedStringOrDefault("Hide", "Hide") : Helpers.GetLocalizedStringOrDefault("DownloadOptions", "Download Options");
+            threadNumeric.Value = _appSettings.threadCount;
+            intervalNumeric.Value = _appSettings.threadInterval;
         }
 
         private void downloadOptionsButton_Click(object sender, EventArgs e)
@@ -111,17 +112,21 @@ namespace NovelpiaDownloaderEnhanced
             _appSettings.Save();
         }
 
-        private void logicButton1_Click(object sender, EventArgs e)
+        private async void logicButton1_Click(object sender, EventArgs e)
         {
             string email = emailTextBox.Text;
             string password = passwordTextBox.Text;
-            if (novelpia.Login(email, password))
+            if (await novelpia.Login(email, password))
             {
                 Logger.Log(Helpers.GetLocalizedStringOrDefault("LoginSuccess", "Login successful!"));
-                loginkeyTextBox.Text = novelpia.loginkey;
+                // After successful login, the 'novelpia' object now has the correct loginkey.
+                // Update the AppSettings and save to persist the new key.
                 _appSettings.LoginKey = novelpia.loginkey;
-                _appSettings.LastEmail = email;
+                _appSettings.LastEmail = email; // Save the last successful email
                 _appSettings.Save();
+
+                // Then, update the UI with the new key.
+                ApplySettingsToUI();
             }
             else
             {
@@ -154,18 +159,28 @@ namespace NovelpiaDownloaderEnhanced
             loginButton2.Text = Helpers.GetLocalizedStringOrDefault("Login", "Login");
         }
 
-        private void downloadButton_Click(object sender, EventArgs e)
+        private async void downloadButton_Click(object sender, EventArgs e)
         {
-            bool saveAsEpub = epubRadioButton.Checked;
+            SaveSettings();
+
+            // Gather all settings from the UI
             string novelID = novelidTextBox.Text;
-            int? fromChapter = fromChapterCheckbox.Checked ? (int?)fromChapterNumeric.Value : null;
-            int? toChapter = toChapterCheckBox.Checked ? (int?)toChapterNumeric.Value : null;
+            bool saveAsEpub = epubRadioButton.Checked;
             bool enableImageCompression = compressCheckBox.Checked;
             int compressionQuality = (int)compressNumeric.Value;
             bool downloadNotices = noticesCheckBox.Checked;
             bool downloadIllustrations = downloadillustrationsCheckBox.Checked;
             bool retryChapters = retryCheckBox.Checked;
             bool appendChapters = appendCheckBox.Checked;
+            int? fromChapter = fromChapterCheckbox.Checked ? (int?)fromChapterNumeric.Value : null;
+            int? toChapter = toChapterCheckBox.Checked ? (int?)toChapterNumeric.Value : null;
+            int threadCount = (int)threadNumeric.Value;
+            int threadInterval = (int)intervalNumeric.Value;
+
+            // Fetch novel metadata once at the beginning
+            var metadata = await Helpers.FetchNovelMetadata(novelID, novelpia);
+            string title = metadata["title"];
+
 
             if (quickdownloadCheckBox.Checked && !string.IsNullOrWhiteSpace(presetOuputDirectoryTextBox.Text))
             {
@@ -178,34 +193,14 @@ namespace NovelpiaDownloaderEnhanced
                 }
 
                 string fileExtension = saveAsEpub ? "epub" : "txt";
-                string fileName = "PlaceholderNovelName";
-
-                if (saveIDRadioButton.Checked)
-                {
-                    fileName = $"{novelID}.{fileExtension}";
-                }
-                else
-                {
-                    var metadata = Helpers.FetchNovelMetadata(novelID, novelpia);
-                    string title = metadata["title"];
-                    string status = metadata["status"];
-
-                    string chapterRange = "";
-                    if (appendCheckBox.Checked && status.Contains("Ongoing"))
-                    {
-                        int startChapter = fromChapterCheckbox.Checked ? (int)fromChapterNumeric.Value : 1;
-                        int endChapter = toChapterCheckBox.Checked ? (int)toChapterNumeric.Value : int.Parse(metadata["totalChapters"]);
-                        chapterRange = $"[{startChapter}-{endChapter}]";
-                    }
-
-                    fileName = $"{Helpers.SanitizeFilename(title)}{chapterRange}.{fileExtension}";
-                }
+                string fileName = saveIDRadioButton.Checked
+                    ? $"{novelID}.{fileExtension}"
+                    : $"{Helpers.SanitizeFilename(title)}.{(saveAsEpub ? "epub" : "txt")}";
 
                 string outputPath = Path.Combine(presetDirectory, fileName);
-                Logger.Log(string.Format(Localization.GetString("QuickDownloadInitiated"), outputPath));
 
                 var downloader = new Download();
-                downloader.DownloadCore(novelID, saveAsEpub, outputPath, fromChapter, toChapter, enableImageCompression, compressionQuality, downloadNotices, downloadIllustrations, retryChapters, appendChapters);
+                await downloader.DownloadCore(novelID, title, saveAsEpub, outputPath, novelpia, fromChapter, toChapter, enableImageCompression, compressionQuality, downloadNotices, downloadIllustrations, retryChapters, appendChapters, threadCount, threadInterval);
             }
             else
             {
@@ -217,27 +212,48 @@ namespace NovelpiaDownloaderEnhanced
 
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
-                    Logger.Log(string.Format(Localization.GetString("DownloadInitiated"), sfd.FileName));
                     var downloader = new Download();
-                    downloader.DownloadCore(novelID, saveAsEpub, sfd.FileName, fromChapter, toChapter, enableImageCompression, compressionQuality, downloadNotices, downloadIllustrations, retryChapters, appendChapters);
+                    await downloader.DownloadCore(novelID, title, saveAsEpub, sfd.FileName, novelpia, fromChapter, toChapter, enableImageCompression, compressionQuality, downloadNotices, downloadIllustrations, retryChapters, appendChapters, threadCount, threadInterval);
                 }
             }
         }
 
         private void resetConfig_Click(object sender, EventArgs e)
         {
-            // Create a new instance of AppSettings, which will have default values.
             _appSettings = new AppSettings();
-
-            // Save the new default settings to the config file.
             _appSettings.Save();
-
-            // Apply the new default settings to the UI.
             ApplySettingsToUI();
-
-            // Log a message to inform the user.
             Logger.Log(Helpers.GetLocalizedStringOrDefault("ResetConfigSuccess", "Configuration has been reset to default settings."));
+        }
 
+        private void browseButton_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
+
+            // Set the initial directory to the current value of the text box, if it's a valid path
+            if (Directory.Exists(presetOuputDirectoryTextBox.Text))
+            {
+                folderBrowserDialog.SelectedPath = presetOuputDirectoryTextBox.Text;
+            }
+
+            if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
+            {
+                presetOuputDirectoryTextBox.Text = folderBrowserDialog.SelectedPath;
+                _appSettings.PresetOutputDirectory = folderBrowserDialog.SelectedPath; // Update the setting
+                _appSettings.Save();
+            }
+        }
+
+        private void threadNumeric_ValueChanged(object sender, EventArgs e)
+        {
+            _appSettings.threadCount = (int)threadNumeric.Value;
+            _appSettings.Save();
+        }
+
+        private void intervalNumeric_ValueChanged(object sender, EventArgs e)
+        {
+            _appSettings.threadInterval = (int)intervalNumeric.Value;
+            _appSettings.Save();
         }
     }
 }

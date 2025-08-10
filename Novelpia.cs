@@ -1,42 +1,74 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace NovelpiaDownloaderEnhanced
 {
     public class Novelpia
     {
-        public string loginkey;
+        public string loginkey { get; set; } = string.Empty;
+        private static readonly HttpClient _httpClient = new HttpClient();
 
-        public Novelpia()
+        public async Task<bool> Login(string id, string pw)
         {
-            var random = new Random();
-            var characters = "0123456789abcdef";
-            var firstPart = new string(Enumerable.Range(0, 32).Select(_ => characters[random.Next(characters.Length)]).ToArray());
-            var secondPart = new string(Enumerable.Range(0, 32).Select(_ => characters[random.Next(characters.Length)]).ToArray());
-            loginkey = firstPart + "_" + secondPart;
-        }
+            try
+            {
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36");
 
-        public bool Login(string id, string pw)
-        {
-            
-            var request = (HttpWebRequest)WebRequest.Create("https://novelpia.com/proc/login");
-            request.Method = "POST";
-            request.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
-            request.ContentType = "application/x-www-form-urlencoded; charset=UTF-8";
-            request.Headers.Add("cookie", $"LOGINKEY={loginkey};");
-            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-            {
-                streamWriter.Write($"redirectrurl=&email={id}&wd={pw}");
-            }
-            var response = (HttpWebResponse)request.GetResponse();
-            using (var streamReader = new StreamReader(response.GetResponseStream()))
-            {
-                if (streamReader.ReadToEnd().Contains("감사합니다"))
+                var postData = new Dictionary<string, string>
+                {
+                    { "redirectrurl", "" },
+                    { "email", id },
+                    { "wd", pw }
+                };
+                var content = new FormUrlEncodedContent(postData);
+
+                HttpResponseMessage response = await _httpClient.PostAsync("https://novelpia.com/proc/login", content);
+
+                // Read the response content as a string
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                // Check for the success string in the response body.
+                // If the login is successful, the server will often respond with a redirect or a success message.
+                // However, we need to check the headers for the cookie.
+                bool loginSuccess = responseBody.Contains("감사합니다");
+
+                if (loginSuccess)
+                {
+                    // Attempt to extract the LOGINKEY from the response headers.
+                    if (response.Headers.TryGetValues("Set-Cookie", out IEnumerable<string>? cookies))
+                    {
+                        foreach (var cookie in cookies)
+                        {
+                            var match = Regex.Match(cookie, @"LOGINKEY=([^;]+);");
+                            if (match.Success)
+                            {
+                                this.loginkey = match.Groups[1].Value;
+                                return true; // Login successful and key captured.
+                            }
+                        }
+                    }
+                    Logger.Log("Login succeeded but could not find a LOGINKEY in the response headers.");
                     return true;
+                }
+
+                Logger.Log($"Login failed. Response: {responseBody}");
+                return false;
             }
-            return false;
+            catch (HttpRequestException ex)
+            {
+                Logger.Log($"Login failed due to network error: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"An unexpected error occurred during login: {ex.Message}");
+                return false;
+            }
         }
     }
 }
