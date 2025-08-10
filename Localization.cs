@@ -28,9 +28,10 @@ namespace NovelpiaDownloaderEnhanced
             {"PasswordLabel", "Password:"},
             {"LoginKeyLabel", "Login Key:"},
             {"Login", "Login"},
-            
-           
-
+            {"DownloadInitiated", "Download Initiated"},
+            {"FatalOutputError", "!!!Fatal Error Saving Epub!!!" },
+            {"FilterEPUB", "EPUB files (*.epub)|*.epub|All files (*.*)|*.*"},
+            {"FilterTXT", "Text files (*.txt)|*.txt|All files (*.*)|*.*"}
         };
 
         private static readonly Dictionary<string, string> KoreanStrings = new Dictionary<string, string>
@@ -48,7 +49,10 @@ namespace NovelpiaDownloaderEnhanced
             {"PasswordLabel", "비밀번호:"},
             {"LoginKeyLabel", "로그인 키:"},
             {"Login", "로그인"},
-            
+            {"DownloadInitiated", "다운로드 시작되었습니다"},
+            {"FatalOutputError", "!!!EPUB 저장 중 치명적인 오류!!!" },
+            {"FilterEPUB", "EPUB 파일 (*.epub)|*.epub|모든 파일 (*.*)|*.*"},
+            {"FilterTXT", "텍스트 파일 (*.txt)|*.txt|모든 파일 (*.*)|*.*"}
         };
 
         public static string GetString(string key)

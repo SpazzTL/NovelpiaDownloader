@@ -48,10 +48,10 @@
             fontmappingLabel = new AcrylicUI.Controls.AcrylicLabel();
             downloadOptionsPanel = new AcrylicUI.Controls.AcrylicPanel();
             downloadOptionsGroupBox = new AcrylicUI.Controls.AcrylicGroupBox();
-            quickdownloadPrompt = new AcrylicUI.Controls.AcrylicCheckBox();
+            quickdownloadCheckBox = new AcrylicUI.Controls.AcrylicCheckBox();
             saveIDRadioButton = new RadioButton();
             saveTitleRadioButton = new RadioButton();
-            acrylicTextBox1 = new AcrylicUI.Controls.AcrylicTextBox();
+            presetOuputDirectoryTextBox = new AcrylicUI.Controls.AcrylicTextBox();
             browseButton = new AcrylicUI.Controls.AcrylicButton();
             acrylicLabel1 = new AcrylicUI.Controls.AcrylicLabel();
             downloadGroupBox = new AcrylicUI.Controls.AcrylicGroupBox();
@@ -307,7 +307,7 @@
             downloadOptionsPanel.BackColor = SystemColors.ControlDark;
             downloadOptionsPanel.BorderStyle = BorderStyle.FixedSingle;
             downloadOptionsPanel.Controls.Add(downloadOptionsGroupBox);
-            downloadOptionsPanel.Location = new Point(3, 104);
+            downloadOptionsPanel.Location = new Point(426, 412);
             downloadOptionsPanel.Name = "downloadOptionsPanel";
             downloadOptionsPanel.Size = new Size(397, 250);
             downloadOptionsPanel.TabIndex = 5;
@@ -315,10 +315,10 @@
             // 
             // downloadOptionsGroupBox
             // 
-            downloadOptionsGroupBox.Controls.Add(quickdownloadPrompt);
+            downloadOptionsGroupBox.Controls.Add(quickdownloadCheckBox);
             downloadOptionsGroupBox.Controls.Add(saveIDRadioButton);
             downloadOptionsGroupBox.Controls.Add(saveTitleRadioButton);
-            downloadOptionsGroupBox.Controls.Add(acrylicTextBox1);
+            downloadOptionsGroupBox.Controls.Add(presetOuputDirectoryTextBox);
             downloadOptionsGroupBox.Controls.Add(browseButton);
             downloadOptionsGroupBox.Controls.Add(acrylicLabel1);
             downloadOptionsGroupBox.ForeColor = SystemColors.ControlText;
@@ -329,15 +329,15 @@
             downloadOptionsGroupBox.TabStop = false;
             downloadOptionsGroupBox.Text = "Options";
             // 
-            // quickdownloadPrompt
+            // quickdownloadCheckBox
             // 
-            quickdownloadPrompt.AutoSize = true;
-            quickdownloadPrompt.IsAcrylic = false;
-            quickdownloadPrompt.Location = new Point(9, 23);
-            quickdownloadPrompt.Name = "quickdownloadPrompt";
-            quickdownloadPrompt.Size = new Size(222, 19);
-            quickdownloadPrompt.TabIndex = 0;
-            quickdownloadPrompt.Text = "Enable Quick Download (No Prompt)";
+            quickdownloadCheckBox.AutoSize = true;
+            quickdownloadCheckBox.IsAcrylic = false;
+            quickdownloadCheckBox.Location = new Point(9, 23);
+            quickdownloadCheckBox.Name = "quickdownloadCheckBox";
+            quickdownloadCheckBox.Size = new Size(222, 19);
+            quickdownloadCheckBox.TabIndex = 0;
+            quickdownloadCheckBox.Text = "Enable Quick Download (No Prompt)";
             // 
             // saveIDRadioButton
             // 
@@ -363,15 +363,15 @@
             saveTitleRadioButton.Text = "Save as Title";
             saveTitleRadioButton.UseVisualStyleBackColor = true;
             // 
-            // acrylicTextBox1
+            // presetOuputDirectoryTextBox
             // 
-            acrylicTextBox1.BackColor = Color.FromArgb(31, 31, 31);
-            acrylicTextBox1.BorderStyle = BorderStyle.FixedSingle;
-            acrylicTextBox1.ForeColor = Color.FromArgb(245, 245, 245);
-            acrylicTextBox1.Location = new Point(65, 48);
-            acrylicTextBox1.Name = "acrylicTextBox1";
-            acrylicTextBox1.Size = new Size(173, 23);
-            acrylicTextBox1.TabIndex = 2;
+            presetOuputDirectoryTextBox.BackColor = Color.FromArgb(31, 31, 31);
+            presetOuputDirectoryTextBox.BorderStyle = BorderStyle.FixedSingle;
+            presetOuputDirectoryTextBox.ForeColor = Color.FromArgb(245, 245, 245);
+            presetOuputDirectoryTextBox.Location = new Point(65, 48);
+            presetOuputDirectoryTextBox.Name = "presetOuputDirectoryTextBox";
+            presetOuputDirectoryTextBox.Size = new Size(173, 23);
+            presetOuputDirectoryTextBox.TabIndex = 2;
             // 
             // browseButton
             // 
@@ -401,7 +401,6 @@
             // 
             // downloadGroupBox
             // 
-            downloadGroupBox.Controls.Add(downloadOptionsPanel);
             downloadGroupBox.Controls.Add(downloadOptionsButton);
             downloadGroupBox.Controls.Add(batchButton);
             downloadGroupBox.Controls.Add(downloadButton);
@@ -460,6 +459,7 @@
             downloadButton.TabIndex = 3;
             downloadButton.Text = "Download";
             downloadButton.UseVisualStyleBackColor = false;
+            downloadButton.Click += downloadButton_Click;
             // 
             // outputoptionsGroupBox
             // 
@@ -715,6 +715,7 @@
             AutoScroll = true;
             BackColor = SystemColors.ControlDarkDark;
             ClientSize = new Size(914, 703);
+            Controls.Add(downloadOptionsPanel);
             Controls.Add(languageButton);
             Controls.Add(consoleTextBox);
             Controls.Add(downloadGroupBox);
@@ -792,8 +793,8 @@
         private AcrylicUI.Controls.AcrylicButton batchButton;
         private AcrylicUI.Controls.AcrylicButton downloadOptionsButton;
         private AcrylicUI.Controls.AcrylicGroupBox downloadOptionsGroupBox;
-        private AcrylicUI.Controls.AcrylicCheckBox quickdownloadPrompt;
-        private AcrylicUI.Controls.AcrylicTextBox acrylicTextBox1;
+        private AcrylicUI.Controls.AcrylicCheckBox quickdownloadCheckBox;
+        private AcrylicUI.Controls.AcrylicTextBox presetOuputDirectoryTextBox;
         private AcrylicUI.Controls.AcrylicLabel acrylicLabel1;
         private AcrylicUI.Controls.AcrylicButton browseButton;
         private RadioButton saveIDRadioButton;

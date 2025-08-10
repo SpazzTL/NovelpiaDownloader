@@ -4,21 +4,16 @@ using System.Windows.Forms;
 
 namespace NovelpiaDownloaderEnhanced
 {
-    public partial class MainWin : Form
+    public static class Logger
     {
         private static readonly object _logLock = new object();
+        public static TextBox? ConsoleTextBox { get; set; }
 
-        /// <summary>
-        /// Logs a message to the UI textbox and to the log.txt file.
-        /// </summary>
-        private void Log(string message)
+        public static void Log(string message)
         {
-            // Add a newline for the UI box
             string uiMessage = message + "\r\n";
-            // Add a timestamp and newline for the file log
             string fileMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
 
-            // Write to log.txt, locking to prevent race conditions from multiple threads
             lock (_logLock)
             {
                 try
@@ -27,18 +22,17 @@ namespace NovelpiaDownloaderEnhanced
                 }
                 catch (Exception ex)
                 {
-                    // If file logging fails, we can't do much but report it
                     Console.WriteLine($"FATAL: Failed to write to log.txt: {ex.Message}");
                 }
             }
 
-            if (consoleTextBox != null && consoleTextBox.InvokeRequired)
+            if (ConsoleTextBox != null && ConsoleTextBox.InvokeRequired)
             {
-                consoleTextBox.Invoke(new Action(() => consoleTextBox.AppendText(uiMessage)));
+                ConsoleTextBox.Invoke(new Action(() => ConsoleTextBox.AppendText(uiMessage)));
             }
-            else if (consoleTextBox != null)
+            else if (ConsoleTextBox != null)
             {
-                consoleTextBox.AppendText(uiMessage);
+                ConsoleTextBox.AppendText(uiMessage);
             }
         }
     }
