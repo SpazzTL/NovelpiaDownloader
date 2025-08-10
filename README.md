@@ -1,6 +1,8 @@
 (All credit goes to @[CjangCjengh](https://github.com/CjangCjengh))
 
-# [한국어](https://www.google.com/search?q=%23korean-%EB%B2%84%EC%A0%84)
+# [한국어]
+
+# Major Code Rewrite In Progress | 대규모 코드 재작업 진행 중
 
 # NovelpiaDownloader Enhanced Fork
 
@@ -10,12 +12,12 @@ A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/Nove
 
 ## 📚 Table of Contents
 
-  - [✨ Features](https://www.google.com/search?q=%23-features)
-  - [🚀 Usage](https://www.google.com/search?q=%23-usage)
-  - [💾 Space-Saving Tips](https://www.google.com/search?q=%23-space-saving-tips)
-  - [🛠️ Command-Line Arguments](https://www.google.com/search?q=%23%EF%B8%8F-command-line-arguments)
-  - [❓ FAQ (Frequently Asked Questions)](https://www.google.com/search?q=%23-faq-frequently-asked-questions)
-  - [📜 Legal & Disclaimer](https://www.google.com/search?q=%23-legal--disclaimer)
+  - [✨ Features]
+  - [🚀 Usage]
+  - [💾 Space-Saving Tips]
+  - [🛠️ Command-Line Arguments]
+  - [❓ FAQ (Frequently Asked Questions]
+  - [📜 Legal & Disclaimer]
 
 -----
 
@@ -27,6 +29,7 @@ A fork of [CjangCjengh's NovelpiaDownloader](https://github.com/CjangCjengh/Nove
   - **Command-Line Interface:** Offers a robust command-line interface for automated and scripted downloads.
   - **Bulk Downloads:** Allows you to easily redownload your library to fix formatting, optimize file sizes, and more. (Format is ``outputname, id`` with each novel on a new line.) 
   - **Improved Downloads:** Offers one-click downloads, with novels automatically named and placed in whichever directory you choose. Also includes auto-retries and error detection.
+  - **Author Notices Support:** Download author notices and illustrations ! 
 
 <img width="880" height="698" alt="image" src="https://github.com/user-attachments/assets/81b5a264-cc22-4f82-8a4b-341d342c9fc3" />
 
@@ -90,6 +93,11 @@ A: The `Novel ID` is the number in the novel's URL. For example, if the URL is `
 **Q: My EPUB reader is throwing errors when I try to open the EPUB.**
 A: This can be caused by missing chapters (e.g., R19 chapters being skipped due to account permissions). The easiest fix is to open the EPUB in [Calibre](https://calibre-ebook.com/download) (an open-source e-book & EPUB manager) and convert it to a new EPUB file. This can be done in bulk.
 
+**Q: Epub fails to load still**
+A: Use Moon+ Reader, ReadEra, or Calibre. Lithium and some other readers may not work, but this will be fixed in a future update.
+
+
+
 -----
 
 ## 📜 Legal & Disclaimer
@@ -109,12 +117,12 @@ This project is a fork of CjangCjengh's NovelpiaDownloader and is intended for p
 
 ## 📚 목차
 
-  - [✨ 기능](https://www.google.com/search?q=%23-features)
-  - [🚀 사용법](https://www.google.com/search?q=%23-usage)
-  - [💾 공간 절약 팁](https://www.google.com/search?q=%23-space-saving-tips)
-  - [🛠️ 커맨드라인 인수](https://www.google.com/search?q=%23%EF%B8%8F-command-line-arguments)
-  - [❓ FAQ (자주 묻는 질문)](https://www.google.com/search?q=%23-faq-frequently-asked-questions)
-  - [📜 법률 및 면책 조항](https://www.google.com/search?q=%23-legal--disclaimer)
+  - [✨ 기능]
+  - [🚀 사용법]
+  - [💾 공간 절약 팁]
+  - [🛠️ 커맨드라인 인수]
+  - [❓ FAQ (자주 묻는 질문)]
+  - [📜 법률 및 면책 조항]
 
 -----
 
@@ -189,6 +197,8 @@ A: `소설 ID`는 소설 URL에 있는 숫자입니다. 예를 들어, URL이 `h
 **Q: EPUB 리더에서 파일을 열 때 오류가 발생합니다.**
 A: 이는 챕터 누락(예: 계정 권한 부족으로 인해 R19 챕터가 건너뛰어짐)으로 인해 발생할 수 있습니다. 가장 쉬운 해결책은 [Calibre](https://calibre-ebook.com/download)(오픈소스 전자책 및 EPUB 관리자)에서 EPUB 파일을 열고 EPUB 형식으로 변환한 다음, 새로운 EPUB 파일을 다운로드하는 것입니다. 이 작업은 일괄 처리할 수 있습니다.
 
+**Q: EPUB 파일이 로드되지 않습니다.**
+A: Moon+ Reader, ReadEra 또는 Calibre를 사용해 보세요. Lithium과 다른 일부 리더에서는 작동하지 않을 수 있지만, 곧 수정될 예정입니다.
 -----
 
 ## 📜 법률 및 면책 조항
