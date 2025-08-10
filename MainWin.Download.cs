@@ -256,11 +256,17 @@ namespace NovelpiaDownloader
 
                         // FIX: Removed the EPUB 3 accessibility <meta> tags which are invalid in EPUB 2.0.1.
                         // This resolves the remaining content.opf parsing errors.
+                        file.Write("<meta name=\"cover\" content=\"cover-image\"/>\n");
+
 
                         foreach (string tag in tags) file.Write($"<dc:subject>{HttpUtility.HtmlEncode(tag)}</dc:subject>\n");
                         file.Write(EpubTemplate.content2);
+
+                       
+
                         file.Write("<item id=\"cover.html\" href=\"Text/cover.html\" media-type=\"application/xhtml+xml\"/>\n");
                         file.Write("<item id=\"cover-image\" href=\"Images/cover.jpg\" media-type=\"image/jpeg\"/>\n");
+
                         for (int i = 0; i < chapterNames.Count; i++)
                         {
                             string temp = Path.GetFileNameWithoutExtension(chapterNames[i].Item2);

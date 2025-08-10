@@ -213,7 +213,7 @@ namespace NovelpiaDownloader
         {
             string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
             string invalidRegStr = string.Format(@"[{0}]", invalidChars);
-            return Regex.Replace(filename, invalidRegStr, "_");
+            return Regex.Replace(filename, invalidRegStr, "");
         }
 
         private string MinifyCss(string css)
