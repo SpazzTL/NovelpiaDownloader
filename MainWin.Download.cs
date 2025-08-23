@@ -1,10 +1,11 @@
-﻿// MainWin.Download.cs - Final fixes for mimetype, language, and accessibility metadata.
+﻿// MainWin.Download.cs 
+using SkiaSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-
 using System.Linq;
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -13,9 +14,7 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
-using SkiaSharp;
-using System.Xml;
-using Ionic.Zip;
+using System.Xml.Linq; 
 
 
 namespace NovelpiaDownloader
@@ -137,157 +136,89 @@ namespace NovelpiaDownloader
                 }
                 ExecuteThreads(threads, thread_num, interval);
 
-                var chapterNames = allChapters.Select(c => (HttpUtility.HtmlEncode(c.name), c.jsonPath)).ToList();
-                var imageDownloadInfos = new List<(string url, string localPath, string type, SKEncodedImageFormat format)>();
-                int currentImageCounter = 1;
-
                 string finalFileExtension = saveAsEpub ? ".epub" : (saveAsHtml ? ".html" : ".txt");
                 string outputPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + finalFileExtension);
                 if (File.Exists(outputPath)) File.Delete(outputPath);
 
                 if (saveAsEpub)
                 {
-                    string bookGuid = Guid.NewGuid().ToString();
+                    // ====================================================================
+                    // BROKEN EPUB GENERATION LOGIC
+                    // ====================================================================
+                    Log("Starting EPUB generation...", isHeadless);
 
+                    // 1. Create EPUB directory structure
+                    string oebpsPath = Path.Combine(directory, "OEBPS");
+                    string imagesPath = Path.Combine(oebpsPath, "Images");
                     Directory.CreateDirectory(Path.Combine(directory, "META-INF"));
-                    Directory.CreateDirectory(Path.Combine(directory, "OEBPS", "Styles"));
-                    Directory.CreateDirectory(Path.Combine(directory, "OEBPS", "Text"));
-                    Directory.CreateDirectory(Path.Combine(directory, "OEBPS", "Images"));
+                    Directory.CreateDirectory(Path.Combine(oebpsPath, "Styles"));
+                    Directory.CreateDirectory(Path.Combine(oebpsPath, "Text"));
+                    Directory.CreateDirectory(imagesPath);
 
-                    // We do not create the mimetype file on disk anymore. It will be written directly to the zip.
+                    // 2. Prepare lists for collecting data
+                    var imageDownloadInfos = new List<(string url, string localPath, string type, SKEncodedImageFormat format)>();
+                    var chaptersForEpub = new List<Tuple<string, string>>();
+                    var contentImagesForEpub = new List<string>();
+                    int currentImageCounter = 1;
 
-                    File.WriteAllText(Path.Combine(directory, "META-INF/container.xml"), EpubTemplate.container);
-                    File.WriteAllText(Path.Combine(directory, "OEBPS", "Styles", "sgc-toc.css"), MinifyCss(EpubTemplate.sgctoc));
-                    File.WriteAllText(Path.Combine(directory, "OEBPS", "Styles", "Stylesheet.css"), MinifyCss(EpubTemplate.stylesheet));
+                    // 3. Queue the cover image for download
+                    string coverImagePath = Path.Combine(imagesPath, "cover.jpg");
+                    imageDownloadInfos.Add((cover_url, coverImagePath, "Cover", SKEncodedImageFormat.Jpeg));
 
-                    imageDownloadInfos.Add((cover_url, Path.Combine(directory, "OEBPS", "Images", "cover.jpg"), "Cover", SKEncodedImageFormat.Jpeg));
-
-                    using (var file = new StreamWriter(Path.Combine(directory, "OEBPS", "toc.ncx")))
+                    // 4. Process chapters: read JSON, clean HTML, images
+                    Log("Processing chapter content and discovering images...", isHeadless);
+                    foreach (var chapterInfo in allChapters)
                     {
-                        file.Write($"<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE ncx PUBLIC \"-//NISO//DTD ncx 2005-1//EN\" \"http://www.daisy.org/z3986/2005/ncx-2005-1.dtd\">\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\" xml:lang=\"en\">\n<head>\n<meta name=\"dtb:uid\" content=\"{bookGuid}\"/>\n<meta name=\"dtb:depth\" content=\"1\"/>\n<meta name=\"dtb:totalPageCount\" content=\"0\"/>\n<meta name=\"dtb:maxPageNumber\" content=\"0\"/>\n</head>\n<docTitle>\n<text>{HttpUtility.HtmlEncode(title)}</text>\n</docTitle>\n<navMap>\n");
-                        for (int i = 0; i < chapterNames.Count; i++)
+                        (string chapterHtml, var foundImages) = ProcessChapterForEpub(chapterInfo.jsonPath, ref currentImageCounter);
+                        chaptersForEpub.Add(Tuple.Create(HttpUtility.HtmlDecode(chapterInfo.name), chapterHtml));
+
+                        foreach (var img in foundImages)
                         {
-                            string cleanChapterName = CleanAndEnsureXhtmlCompliance(chapterNames[i].Item1);
-                            file.Write($"<navPoint id=\"navPoint-{i + 1}\" playOrder=\"{i + 1}\">\n<navLabel>\n<text>{cleanChapterName}</text>\n</navLabel>\n<content src=\"Text/chapter{Path.GetFileNameWithoutExtension(chapterNames[i].Item2)}.html\" />\n</navPoint>\n");
+                            string localImgPath = Path.Combine(imagesPath, img.filename);
+                            imageDownloadInfos.Add((img.url, localImgPath, "Illustration", SKEncodedImageFormat.Jpeg));
+                            contentImagesForEpub.Add(img.filename);
                         }
-                        file.Write("</navMap>\n</ncx>");
+                        File.Delete(chapterInfo.jsonPath); // Clean up processed JSON file
                     }
 
-                    using (var file = new StreamWriter(Path.Combine(directory, "OEBPS", "Text", "cover.html")))
-                    {
-                        string cleanTitle = CleanAndEnsureXhtmlCompliance(HttpUtility.HtmlEncode(title));
-                        string cleanAuthor = CleanAndEnsureXhtmlCompliance(HttpUtility.HtmlEncode(author));
-                        string cleanStatus = CleanAndEnsureXhtmlCompliance(HttpUtility.HtmlEncode(status));
-                        string cleanSynopsis = CleanAndEnsureXhtmlCompliance(HttpUtility.HtmlEncode(synopsis));
-
-                        file.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-                        file.Write("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n");
-                        file.Write("<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\n<head>\n");
-                        file.Write("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n");
-                        file.Write($"<title>{cleanTitle}</title>\n");
-                        file.Write("<link rel=\"stylesheet\" type=\"text/css\" href=\"../Styles/Stylesheet.css\" />\n</head>\n<body>\n");
-                        file.Write($"<h1>{cleanTitle}</h1>\n<p><strong>Author:</strong> {cleanAuthor}</p>\n");
-                        if (tags.Any())
-                        {
-                            string cleanTags = string.Join(", ", tags.Select(t => CleanAndEnsureXhtmlCompliance(HttpUtility.HtmlEncode(t))));
-                            file.Write($"<p><strong>Tags:</strong> {cleanTags}</p>\n");
-                        }
-                        if (!string.IsNullOrEmpty(status)) file.Write($"<p><strong>Status:</strong> {cleanStatus}</p>\n");
-                        file.Write($"<h2>Synopsis</h2>\n<p>{cleanSynopsis}</p>\n</body>\n</html>");
-                    }
-
-                    chapterNames.ForEach(s =>
-                    {
-                        if (!File.Exists(s.Item2)) return;
-                        string temp = Path.GetFileNameWithoutExtension(s.Item2);
-                        string cleanChapterTitle = CleanAndEnsureXhtmlCompliance(HttpUtility.HtmlEncode(s.Item1));
-                        using (var file = new StreamWriter(Path.Combine(directory, "OEBPS", "Text", $"chapter{temp}.html")))
-                        {
-                            file.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-                            file.Write("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n");
-                            file.Write("<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\n<head>\n");
-                            file.Write("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n");
-                            file.Write($"<title>{cleanChapterTitle}</title>\n");
-                            file.Write("<link rel=\"stylesheet\" type=\"text/css\" href=\"../Styles/Stylesheet.css\" />\n</head>\n<body>\n");
-                            file.Write($"<h1>{cleanChapterTitle}</h1>\n");
-
-                            var serializer = new JavaScriptSerializer();
-                            var texts = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(s.Item2, Encoding.UTF8));
-                            foreach (var text in (ArrayList)texts["s"])
-                            {
-                                var textDict = (Dictionary<string, object>)text;
-                                string textStr = HttpUtility.HtmlDecode((string)textDict["text"]);
-
-                                textStr = Regex.Replace(textStr, @"<p>\s*&nbsp;\s*</p>\s*<p><div\s+class=[""']?cover-wrapper[""']?[\s\S]*?</div>\s*</p>\s*(<p>&nbsp;</p>\s*)*", string.Empty, RegexOptions.Singleline);
-                                textStr = Regex.Replace(textStr, @"<div[^>]*class=[""']?[^""']*cover-wrapper[^""']*[""']?[^>]*>[\s\S]*?</div>", string.Empty, RegexOptions.Singleline);
-                                textStr = Regex.Replace(textStr, @"<p\s+style=[""'][^""']*?(?:display:\s*none|opacity:\s*0|height:\s*0px)[^""']*?[""']\s*?>.*?</p>", string.Empty, RegexOptions.Singleline);
-                                textStr = Regex.Replace(textStr, @"```\{=html\}[\s\S]*?```", string.Empty, RegexOptions.Singleline);
-                                textStr = Regex.Replace(textStr, @"\{=html\}", "", RegexOptions.IgnoreCase);
-                                textStr = Regex.Replace(textStr, @"`</[^>]*>`", "", RegexOptions.IgnoreCase);
-                                textStr = CleanAndEnsureXhtmlCompliance(textStr);
-
-                                var imgMatch = Regex.Match(textStr, @"<img[^>]+src=[""']([^""']+)[""'][^>]*>");
-                                if (imgMatch.Success && !textStr.Contains("cover-wrapper"))
-                                {
-                                    string imageFilename = $"{currentImageCounter}.webp";
-                                    imageDownloadInfos.Add((imgMatch.Groups[1].Value, Path.Combine(directory, "OEBPS", "Images", imageFilename), "Illustration", SKEncodedImageFormat.Webp));
-                                    textStr = $"<p><img alt=\"Image {currentImageCounter}\" src=\"../Images/{imageFilename}\" /></p>";
-                                    currentImageCounter++;
-                                }
-
-                                textStr = Regex.Replace(textStr, @"\sid=""docs-internal-guid-[^""]*""", "");
-                                if (string.IsNullOrWhiteSpace(textStr))
-                                    file.Write("<p>&#160;</p>\n");
-                                else
-                                    file.Write(Regex.IsMatch(textStr, @"^<p\b") ? textStr + "\n" : $"<p>{textStr}</p>\n");
-                            }
-                            file.Write("</body>\n</html>");
-                        }
-                        File.Delete(s.Item2);
-                    });
-
-
-                    using (var file = new StreamWriter(Path.Combine(directory, "OEBPS/content.opf")))
-                    {
-                        // FIX: Removed xml:lang="ko" from the <package> tag to comply with EPUB 2.0.1 DTD.
-                        file.Write($"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" unique-identifier=\"BookId\" version=\"2.0\">\n<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:opf=\"http://www.idpf.org/2007/opf\">\n<dc:identifier id=\"BookId\" opf:scheme=\"UUID\">{bookGuid}</dc:identifier>\n");
-                        file.Write($"<dc:language>ko</dc:language>\n");
-                        file.Write($"<dc:title>{HttpUtility.HtmlEncode(title)}</dc:title>\n<dc:creator opf:role=\"aut\">{HttpUtility.HtmlEncode(author)}</dc:creator>\n<dc:description>{HttpUtility.HtmlEncode(synopsis)}</dc:description>\n");
-
-                        // FIX: Removed the EPUB 3 accessibility <meta> tags which are invalid in EPUB 2.0.1.
-                        // This resolves the remaining content.opf parsing errors.
-                        file.Write("<meta name=\"cover\" content=\"cover-image\"/>\n");
-
-
-                        foreach (string tag in tags) file.Write($"<dc:subject>{HttpUtility.HtmlEncode(tag)}</dc:subject>\n");
-                        file.Write(EpubTemplate.content2);
-
-                       
-
-                        file.Write("<item id=\"cover.html\" href=\"Text/cover.html\" media-type=\"application/xhtml+xml\"/>\n");
-                        file.Write("<item id=\"cover-image\" href=\"Images/cover.jpg\" media-type=\"image/jpeg\"/>\n");
-
-                        for (int i = 0; i < chapterNames.Count; i++)
-                        {
-                            string temp = Path.GetFileNameWithoutExtension(chapterNames[i].Item2);
-                            file.Write($"<item id=\"chapter{temp}.html\" href=\"Text/chapter{temp}.html\" media-type=\"application/xhtml+xml\"/>\n");
-                        }
-                        for (int i = 1; i < currentImageCounter; i++) file.Write($"<item id=\"{i}.webp\" href=\"Images/{i}.webp\" media-type=\"image/webp\"/>\n");
-                        file.Write("</manifest>\n<spine toc=\"ncx\">\n<itemref idref=\"cover.html\"/>\n");
-                        for (int i = 0; i < chapterNames.Count; i++)
-                        {
-                            string temp = Path.GetFileNameWithoutExtension(chapterNames[i].Item2);
-                            file.Write($"<itemref idref=\"chapter{temp}.html\"/>\n");
-                        }
-                        file.Write("</spine>\n<guide>\n<reference type=\"cover\" title=\"Cover\" href=\"Text/cover.html\"/>\n</guide>\n</package>");
-                    }
-                    List<Thread> imageThreads = imageDownloadInfos.Select(imgInfo => new Thread(() => DownloadImage(imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality, imgInfo.format, isHeadless))).ToList();
+                    // 5. Download all queued images (cover and content)
+                    Log($"Downloading cover and {contentImagesForEpub.Count} content image(s)...", isHeadless);
+                    List<Thread> imageThreads = imageDownloadInfos
+                        .Select(imgInfo => new Thread(() => DownloadImage(imgInfo.url, imgInfo.localPath, imgInfo.type, enableImageCompression, jpegQuality, imgInfo.format, isHeadless)))
+                        .ToList();
                     ExecuteThreads(imageThreads, thread_num, interval);
 
-                    CreateEpubZipFile(directory, outputPath);
+                    // 6. Write static files (CSS)
+                    File.WriteAllText(Path.Combine(oebpsPath, "Styles", "Stylesheet.css"), MinifyCss(EpubTemplate.stylesheet));
+                    // Note: sgc-toc.css is not used by the new writer but kept in case you have custom templates
+                    File.WriteAllText(Path.Combine(oebpsPath, "Styles", "sgc-toc.css"), MinifyCss(EpubTemplate.sgctoc));
+
+
+                    // 7. Use the new EpubWriter to generate all XML and XHTML files
+                    try
+                    {
+                        Log("Assembling EPUB specification files...", isHeadless);
+                        var epubWriter = new EpubWriter(title, author, synopsis, tags, chaptersForEpub, contentImagesForEpub);
+                        epubWriter.GenerateEpubContents(directory);
+
+                        // 8. Use your existing, robust zipping method to create the final file
+                        Log("Creating EPUB archive...", isHeadless);
+                        CreateEpubZipFile(directory, outputPath);
+                        Log("EPUB generation successful!", isHeadless);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Error during EPUB file generation: {ex.Message}", isHeadless);
+                    }
+                    // ====================================================================
+                    // END: EPUB GENERATION LOGIC
+                    // ====================================================================
                 }
                 else
                 {
+                    
+                    var imageDownloadInfos = new List<(string url, string localPath, string type, SKEncodedImageFormat format)>();
+                    var currentImageCounter = 1;
                     if (saveAsHtml)
                     {
                         Directory.CreateDirectory(Path.Combine(directory, "Images"));
@@ -304,7 +235,7 @@ namespace NovelpiaDownloader
                         }
 
                         var serializer = new JavaScriptSerializer();
-                        foreach (var chapterInfo in chapterNames)
+                        foreach (var chapterInfo in allChapters.Select(c => (HttpUtility.HtmlEncode(c.name), c.jsonPath)))
                         {
                             file.Write(saveAsHtml ? $"<h2>{chapterInfo.Item1}</h2>" : $"{chapterInfo.Item1}\n\n");
                             if (!File.Exists(chapterInfo.Item2)) continue;
@@ -349,7 +280,10 @@ namespace NovelpiaDownloader
 
                 try
                 {
-                    Directory.Delete(directory, true);
+                    if (Directory.Exists(directory))
+                    {
+                        Directory.Delete(directory, true);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -358,6 +292,48 @@ namespace NovelpiaDownloader
                 Log("Download complete!", isHeadless);
             });
             return downloadTask;
+        }
+
+
+        private (string htmlContent, List<(string url, string filename)> images) ProcessChapterForEpub(string sourceJsonPath, ref int imageCounter)
+        {
+            var foundImages = new List<(string url, string filename)>();
+            if (!File.Exists(sourceJsonPath)) return ("", foundImages);
+
+            var serializer = new JavaScriptSerializer();
+            var texts = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(sourceJsonPath, Encoding.UTF8));
+            var contentBuilder = new StringBuilder();
+
+            foreach (var text in (ArrayList)texts["s"])
+            {
+                var textDict = (Dictionary<string, object>)text;
+                string textStr = HttpUtility.HtmlDecode((string)textDict["text"]);
+
+                // Find images and replace their tags before cleaning the rest of the HTML.
+                var imgMatches = Regex.Matches(textStr, @"<img[^>]+src=[""']([^""']+)[""'][^>]*>");
+                foreach (Match imgMatch in imgMatches)
+                {
+                    if (imgMatch.Success && !textStr.Contains("cover-wrapper"))
+                    {
+                        string imageUrl = imgMatch.Groups[1].Value;
+                        string imageFilename = $"{imageCounter}.jpg"; // Use .jpg for EPUB compatibility
+
+                        // Replace the original image tag with a standardized one pointing to the new local file.
+                        string newImgTag = $"<p><img alt=\"Image {imageCounter}\" src=\"../Images/{imageFilename}\" /></p>";
+                        textStr = textStr.Replace(imgMatch.Value, newImgTag);
+
+                        foundImages.Add((imageUrl, imageFilename));
+                        imageCounter++;
+                    }
+                }
+
+                // Clean the resulting HTML using your existing robust function.
+                string cleanedHtml = CleanAndEnsureXhtmlCompliance(textStr);
+
+                contentBuilder.Append(cleanedHtml);
+            }
+
+            return (contentBuilder.ToString(), foundImages);
         }
 
         private void CreateEpubZipFile(string sourceDirectory, string outputPath)
@@ -374,9 +350,11 @@ namespace NovelpiaDownloader
                 return;
             }
 
-            // Fallback to Ionic.Zip with warning
-            Log("Warning: External zip tools not available. EPUB may not pass strict validation but should work in most readers.", false);
-            CreateEpubWithIonicZip(sourceDirectory, outputPath);
+            // Fallback to the new, reliable System.IO.Compression method
+            Log("Warning: External zip tools not found. Using internal zip library.", false);
+            File.WriteAllText(Path.Combine(sourceDirectory, "mimetype"), "application/epub+zip", Encoding.UTF8);
+            CreateEpubWithSystemZip(sourceDirectory, outputPath); // <-- Corrected call
+            File.Delete(Path.Combine(sourceDirectory, "mimetype"));
         }
 
         private bool TryCreateEpubWithZipCommand(string sourceDirectory, string outputPath)
@@ -526,39 +504,32 @@ namespace NovelpiaDownloader
             return false;
         }
 
-        private void CreateEpubWithIonicZip(string sourceDirectory, string outputPath)
+       
+        private void CreateEpubWithSystemZip(string sourceDirectory, string outputPath)
         {
-            using (var zip = new ZipFile())
+            // The temporary mimetype file is created by the calling function (CreateEpubZipFile)
+            string mimeTypePath = Path.Combine(sourceDirectory, "mimetype");
+
+            using (var archive = System.IO.Compression.ZipFile.Open(outputPath, ZipArchiveMode.Create))
             {
-                // Create mimetype entry (will have extra fields, but most readers accept it)
-                var mimetypeEntry = zip.AddEntry("mimetype", "application/epub+zip");
-                mimetypeEntry.CompressionMethod = CompressionMethod.None;
+                // 1. Add mimetype file FIRST and WITHOUT compression. | Still not working ,,,,,,,
+                archive.CreateEntryFromFile(mimeTypePath, "mimetype", CompressionLevel.NoCompression);
 
-                // Add other directories
-                AddDirectoryToZipIonic(zip, Path.Combine(sourceDirectory, "META-INF"), "META-INF", CompressionMethod.Deflate);
-                AddDirectoryToZipIonic(zip, Path.Combine(sourceDirectory, "OEBPS"), "OEBPS", CompressionMethod.Deflate);
+                // 2. Add all other files recursively with compression.
+                foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*.*", SearchOption.AllDirectories))
+                {
+                    // Get the relative path for the entry name
+                    string entryName = file.Substring(sourceDirectory.Length + 1).Replace('\\', '/');
 
-                zip.Save(outputPath);
+                    // Skip the mimetype file as it's already been added
+                    if (entryName.Equals("mimetype", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    archive.CreateEntryFromFile(file, entryName, CompressionLevel.Optimal);
+                }
             }
         }
 
-        private void AddDirectoryToZipIonic(ZipFile zip, string sourceDir, string rootFolderName, CompressionMethod compressionMethod)
-        {
-            var dirInfo = new DirectoryInfo(sourceDir);
-            if (!dirInfo.Exists) return;
-
-            foreach (var file in dirInfo.GetFiles("*", SearchOption.AllDirectories))
-            {
-                if (file.Name.ToLower() == "mimetype") continue;
-
-                var relativePath = Path.Combine(rootFolderName, file.FullName.Substring(sourceDir.Length + 1));
-                var entryName = relativePath.Replace('\\', '/');
-
-                var fileBytes = File.ReadAllBytes(file.FullName);
-                var entry = zip.AddEntry(entryName, fileBytes);
-                entry.CompressionMethod = compressionMethod;
-            }
-        }
         private string CleanAndEnsureXhtmlCompliance(string html)
         {
             if (string.IsNullOrWhiteSpace(html)) return "";
@@ -584,6 +555,221 @@ namespace NovelpiaDownloader
             html = Regex.Replace(html, @"\s+", " ");
             html = Regex.Replace(html, @"<([^>]+)\s+>", "<$1>");
             return html;
+        }
+    }
+
+    public class EpubWriter
+    {
+        private readonly string _title;
+        private readonly string _author;
+        private readonly string _synopsis;
+        private readonly List<string> _tags;
+        private readonly List<Tuple<string, string>> _chapters; // Item1: Title, Item2: Content (as XHTML string)
+        private readonly List<string> _imageFilenames; // e.g., "1.jpg", "2.jpg"
+
+        private readonly XNamespace _nsOpf = "http://www.idpf.org/2007/opf";
+        private readonly XNamespace _nsDc = "http://purl.org/dc/elements/1.1/";
+        private readonly XNamespace _nsNcx = "http://www.daisy.org/z3986/2005/ncx/";
+
+        public EpubWriter(string title, string author, string synopsis, List<string> tags, List<Tuple<string, string>> chapters, List<string> imageFilenames)
+        {
+            _title = title;
+            _author = author;
+            _synopsis = synopsis ?? string.Empty;
+            _tags = tags ?? new List<string>();
+            _chapters = chapters ?? new List<Tuple<string, string>>();
+            _imageFilenames = imageFilenames ?? new List<string>();
+        }
+
+        /// <summary>
+        /// Generates all necessary XML and XHTML files into the provided directory structure.
+        /// </summary>
+        public void GenerateEpubContents(string rootDirectory)
+        {
+            string oebpsPath = Path.Combine(rootDirectory, "OEBPS");
+            string metaInfPath = Path.Combine(rootDirectory, "META-INF");
+            string textPath = Path.Combine(oebpsPath, "Text");
+
+            string bookGuid = $"urn:uuid:{Guid.NewGuid()}";
+            CreateContainerXml(metaInfPath);
+            CreateContentOpf(oebpsPath, bookGuid);
+            CreateTocNcx(oebpsPath, bookGuid);
+            CreateCoverPage(textPath);
+            CreateChapterPages(textPath);
+        }
+
+
+       
+        private void CreateContainerXml(string metaInfPath)
+        {
+            XNamespace ns = "urn:oasis:names:tc:opendocument:xmlns:container";
+            var doc = new XDocument(
+                new XDeclaration("1.0", "UTF-8", null),
+                new XElement(ns + "container",
+                    new XAttribute("version", "1.0"),
+                    new XElement(ns + "rootfiles",
+                        new XElement(ns + "rootfile",
+                            new XAttribute("full-path", "OEBPS/content.opf"),
+                            new XAttribute("media-type", "application/oebps-package+xml")
+                        )
+                    )
+                )
+            );
+            doc.Save(Path.Combine(metaInfPath, "container.xml"));
+        }
+
+        private void CreateContentOpf(string oebpsPath, string bookGuid)
+        {
+            var metadata = new XElement(_nsOpf + "metadata",
+                new XAttribute(XNamespace.Xmlns + "dc", _nsDc),
+                new XAttribute(XNamespace.Xmlns + "opf", _nsOpf),
+                new XElement(_nsDc + "identifier", new XAttribute(_nsOpf + "scheme", "UUID"), new XAttribute("id", "BookId"), bookGuid),
+                new XElement(_nsDc + "language", "ko"),
+                new XElement(_nsDc + "title", _title),
+                new XElement(_nsDc + "creator", new XAttribute(_nsOpf + "role", "aut"), _author),
+                new XElement(_nsDc + "description", _synopsis),
+                new XElement(_nsOpf + "meta", new XAttribute("name", "cover"), new XAttribute("content", "cover-image"))
+            );
+            foreach (var tag in _tags)
+            {
+                metadata.Add(new XElement(_nsDc + "subject", tag));
+            }
+
+            var manifest = new XElement(_nsOpf + "manifest",
+                new XElement(_nsOpf + "item", new XAttribute("id", "ncx"), new XAttribute("href", "toc.ncx"), new XAttribute("media-type", "application/x-dtbncx+xml")),
+                new XElement(_nsOpf + "item", new XAttribute("id", "stylesheet"), new XAttribute("href", "Styles/Stylesheet.css"), new XAttribute("media-type", "text/css")),
+                new XElement(_nsOpf + "item", new XAttribute("id", "cover-page"), new XAttribute("href", "Text/cover.xhtml"), new XAttribute("media-type", "application/xhtml+xml")),
+                new XElement(_nsOpf + "item", new XAttribute("id", "cover-image"), new XAttribute("href", "Images/cover.jpg"), new XAttribute("media-type", "image/jpeg"))
+            );
+            for (int i = 0; i < _chapters.Count; i++)
+            {
+                manifest.Add(new XElement(_nsOpf + "item", new XAttribute("id", $"chapter{i + 1}"), new XAttribute("href", $"Text/chapter{i + 1}.xhtml"), new XAttribute("media-type", "application/xhtml+xml")));
+            }
+            foreach (var filename in _imageFilenames)
+            {
+                manifest.Add(new XElement(_nsOpf + "item", new XAttribute("id", Path.GetFileNameWithoutExtension(filename)), new XAttribute("href", $"Images/{filename}"), new XAttribute("media-type", "image/jpeg")));
+            }
+
+            var spine = new XElement(_nsOpf + "spine", new XAttribute("toc", "ncx"),
+                new XElement(_nsOpf + "itemref", new XAttribute("idref", "cover-page"))
+            );
+            for (int i = 0; i < _chapters.Count; i++)
+            {
+                spine.Add(new XElement(_nsOpf + "itemref", new XAttribute("idref", $"chapter{i + 1}")));
+            }
+
+            var guide = new XElement(_nsOpf + "guide",
+                new XElement(_nsOpf + "reference", new XAttribute("type", "cover"), new XAttribute("title", "Cover"), new XAttribute("href", "Text/cover.xhtml"))
+            );
+
+            var doc = new XDocument(
+                new XDeclaration("1.0", "UTF-8", null),
+                new XElement(_nsOpf + "package",
+                    new XAttribute("version", "2.0"),
+                    new XAttribute("unique-identifier", "BookId"),
+                    metadata,
+                    manifest,
+                    spine,
+                    guide
+                )
+            );
+            doc.Save(Path.Combine(oebpsPath, "content.opf"));
+        }
+
+        private void CreateTocNcx(string oebpsPath, string bookGuid)
+        {
+            var navMap = new XElement(_nsNcx + "navMap");
+            for (int i = 0; i < _chapters.Count; i++)
+            {
+                navMap.Add(
+                    new XElement(_nsNcx + "navPoint",
+                        new XAttribute("id", $"navPoint-{i + 1}"),
+                        new XAttribute("playOrder", $"{i + 1}"),
+                        new XElement(_nsNcx + "navLabel", new XElement(_nsNcx + "text", _chapters[i].Item1)),
+                        new XElement(_nsNcx + "content", new XAttribute("src", $"Text/chapter{i + 1}.xhtml"))
+                    )
+                );
+            }
+
+            var doc = new XDocument(
+                new XDeclaration("1.0", "UTF-8", null),
+                new XDocumentType("ncx", "-//NISO//DTD ncx 2005-1//EN", "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd", null),
+                new XElement(_nsNcx + "ncx",
+                    new XAttribute("version", "2005-1"),
+                    new XElement(_nsNcx + "head",
+                        new XElement(_nsNcx + "meta", new XAttribute("name", "dtb:uid"), new XAttribute("content", bookGuid)),
+                        new XElement(_nsNcx + "meta", new XAttribute("name", "dtb:depth"), new XAttribute("content", "1")),
+                        new XElement(_nsNcx + "meta", new XAttribute("name", "dtb:totalPageCount"), new XAttribute("content", "0")),
+                        new XElement(_nsNcx + "meta", new XAttribute("name", "dtb:maxPageNumber"), new XAttribute("content", "0"))
+                    ),
+                    new XElement(_nsNcx + "docTitle", new XElement(_nsNcx + "text", _title)),
+                    navMap
+                )
+            );
+            doc.Save(Path.Combine(oebpsPath, "toc.ncx"));
+        }
+
+        private void CreateCoverPage(string textPath)
+        {
+            var coverDoc = CreateXhtmlDocument("Cover",
+                new XElement("div", new XAttribute("style", "text-align: center; padding: 0; margin: 0;"),
+                    new XElement("img",
+                        new XAttribute("src", "../Images/cover.jpg"),
+                        new XAttribute("alt", "Cover Image"),
+                        new XAttribute("style", "max-width: 100%; height: auto;")
+                    )
+                )
+            );
+            coverDoc.Save(Path.Combine(textPath, "cover.xhtml"));
+        }
+
+        private void CreateChapterPages(string textPath)
+        {
+            for (int i = 0; i < _chapters.Count; i++)
+            {
+                string chapterTitle = _chapters[i].Item1;
+                string rawHtmlContent = _chapters[i].Item2;
+
+                XElement bodyContent;
+                try
+                {
+                   
+                    bodyContent = XElement.Parse($"<div><h1>{HttpUtility.HtmlEncode(chapterTitle)}</h1>{rawHtmlContent}</div>");
+                }
+                catch (System.Xml.XmlException)
+                {
+                    // If parsing fails due to malformed HTML, fall back to treating it as plain text
+                    bodyContent = new XElement("div",
+                        new XElement("h1", chapterTitle),
+                        new XElement("p", rawHtmlContent) // escape any lingering HTML tags
+                    );
+                }
+
+                var chapterDoc = CreateXhtmlDocument(chapterTitle, bodyContent);
+                chapterDoc.Save(Path.Combine(textPath, $"chapter{i + 1}.xhtml"));
+            }
+        }
+
+        private XDocument CreateXhtmlDocument(string title, params XNode[] bodyContent)
+        {
+            XNamespace ns = "http://www.w3.org/1999/xhtml";
+            return new XDocument(
+                new XDeclaration("1.0", "UTF-8", null),
+                new XDocumentType("html", "-//W3C//DTD XHTML 1.1//EN", "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd", null),
+                new XElement(ns + "html",
+                    new XAttribute("xmlns", ns),
+                    new XAttribute(XNamespace.Xml + "lang", "ko"),
+                    new XElement(ns + "head",
+                        new XElement(ns + "title", title),
+                        new XElement(ns + "link",
+                            new XAttribute("rel", "stylesheet"),
+                            new XAttribute("type", "text/css"),
+                            new XAttribute("href", "../Styles/Stylesheet.css")
+                        )
+                    ),
+                    new XElement(ns + "body", bodyContent)
+                )
+            );
         }
     }
 }
