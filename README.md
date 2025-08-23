@@ -49,7 +49,7 @@ A higher thread count and a lower interval can speed up your downloads, but be a
 
 ### Image Compression
 
-Built-in image compression can dramatically reduce file size. Use the `-compressimages` and `-jpegquality` arguments to enable this feature.
+Built-in image compression can dramatically reduce file size. Use the `-compressimages` and `-jpegquality` arguments to enable this feature. (Or the checkbox)
 
   - **80% Quality:** Provides large savings with no noticeable quality difference (e.g., 1MB -\> 65KB).
   - **50% Quality:** Offers massive savings with only a small difference in quality (e.g., 1MB -\> 30KB).
