@@ -1,4 +1,4 @@
-﻿namespace NovelpiaDownloaderEnhanced
+﻿namespace NovelpiaDownloader
 {
     public static class EpubTemplate
     {
@@ -8,7 +8,6 @@
             "<rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/>\n" +
             "</rootfiles>\n" +
             "</container>\n";
-
         public static string sgctoc = "div.sgc-toc-title {\n" +
             "font-size: 2em;\n" +
             "font-weight: bold;\n" +
@@ -44,7 +43,6 @@
             "div.sgc-toc-level-6 {\n" +
             "margin-left: 2em;\n" +
             "}\n";
-
         public static string stylesheet = ".border01 {\n" +
             "\n" +
             "border: 2px solid black;\n" +
@@ -270,7 +268,6 @@
             "background-color: #FFFF00;\n" +
             "border-radius: 0.5em;\n" +
             "}\n";
-
         public static string toc = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
             "<!DOCTYPE ncx PUBLIC \"-//NISO//DTD ncx 2005-1//EN\"\n" +
             "\"http://www.daisy.org/z3986/2005/ncx-2005-1.dtd\">\n" +
@@ -281,16 +278,49 @@
             "<meta name=\"dtb:maxPageNumber\" content=\"0\" />\n" +
             "</head>\n" +
             "<docTitle>\n";
-
         public static string content1 = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
             "<package version=\"2.0\" unique-identifier=\"BookId\" xmlns=\"http://www.idpf.org/2007/opf\">\n" +
             "<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:opf=\"http://www.idpf.org/2007/opf\">\n";
-
         public static string content2 = "<meta content=\"1.9.10\" name=\"Sigil version\"/>\n" +
             "</metadata>\n" +
             "<manifest>\n" +
             "<item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/>\n" +
             "<item id=\"sgc-toc.css\" href=\"Styles/sgc-toc.css\" media-type=\"text/css\"/>\n" +
-            "<item id=\"Stylesheet.css\" href=\"Styles/Stylesheet.css\" media-type=\"text/css\"/>\n";
+            "<item id=\"Stylesheet.css\" href=\"Styles/Stylesheet.css\" media-type=\"text/css\"/>\n" +
+            "<item id=\"cover.html\" href=\"Text/cover.html\" media-type=\"application/xhtml+xml\"/>\n" +
+            "<item id=\"cover.jpg\" href=\"Images/cover.jpg\" media-type=\"image/jpeg\"/>";
+        public static string chapter = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+            "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\n" +
+            "\"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n" +
+            "\n" +
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" +
+            "<head>\n" +
+            "<title></title>\n" +
+            "<style type=\"text/css\">\n" +
+            "html, body { margin:0; padding:0; }\n" +
+            "</style>\n" +
+            "<link href=\"../Styles/sgc-toc.css\" type=\"text/css\" rel=\"stylesheet\"/>\n" +
+            "<link href=\"../Styles/Stylesheet.css\" type=\"text/css\" rel=\"stylesheet\"/>\n" +
+            "</head>\n" +
+            "<body>\n";
+        public static string cover = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+            "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\n" +
+            "\"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n" +
+            "\n" +
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" xml:lang=\"ko\">\n" +
+            "<head>\n" +
+            "<title></title>\n" +
+            "<style type=\"text/css\">\n" +
+            "html, body { margin:0; padding:0; }\n" +
+            "</style>\n" +
+            "\n" +
+            "<link href=\"../Styles/sgc-toc.css\" type=\"text/css\" rel=\"stylesheet\"/>\n" +
+            "<link href=\"../Styles/Stylesheet.css\" type=\"text/css\" rel=\"stylesheet\"/>\n" +
+            "</head>\n" +
+            "\n" +
+            "<body>\n" +
+            "<div class=\"cover\"><img alt=\"cover\" src=\"../Images/cover.jpg\" width=\"100%\"/></div>\n" +
+            "</body>\n" +
+            "</html>\n";
     }
 }

@@ -40,25 +40,32 @@ namespace NovelpiaDownloaderEnhanced
             {
                 Logger.Log($"Fetching metadata for Novel ID: {novelID}...");
 
-                string? pageResponseText = await SendRequest($"https://novelpia.com/novel/{novelID}", novelpia.loginkey);
-                if (string.IsNullOrEmpty(pageResponseText)) return metadata;
+                //  Fetch both novel page and the first episode list page concurrently
+                var novelPageTask = SendRequest($"https://novelpia.com/novel/{novelID}", novelpia.loginkey);
+                var listPageTask = SendRequest($"https://novelpia.com/proc/episode_list", novelpia.loginkey, $"novel_no={novelID}&sort=DOWN&page=0");
 
-                var titleMatch = Regex.Match(pageResponseText, @"productName = '(.+?)';");
-                if (titleMatch.Success) metadata["title"] = titleMatch.Groups[1].Value;
+                await Task.WhenAll(novelPageTask, listPageTask);
 
-                var completionMatch = Regex.Match(pageResponseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
-                if (completionMatch.Success)
+                string? pageResponseText = await novelPageTask;
+                string? listResponseText = await listPageTask;
+
+                if (!string.IsNullOrEmpty(pageResponseText))
                 {
-                    string statusKr = completionMatch.Groups[1].Value.Trim();
-                    metadata["status"] = statusKr == "완결" ? "Completed" : statusKr;
-                }
-                else
-                {
-                    metadata["status"] = "Ongoing";
+                    var titleMatch = Regex.Match(pageResponseText, @"productName = '(.+?)';");
+                    if (titleMatch.Success) metadata["title"] = titleMatch.Groups[1].Value;
+
+                    var completionMatch = Regex.Match(pageResponseText, @"<span class=""b_comp s_inv"">(.+?)</span>");
+                    if (completionMatch.Success)
+                    {
+                        string statusKr = completionMatch.Groups[1].Value.Trim();
+                        metadata["status"] = statusKr == "완결" ? "Completed" : statusKr;
+                    }
+                    else
+                    {
+                        metadata["status"] = "Ongoing";
+                    }
                 }
 
-                // Updated to async method
-                string? listResponseText = await SendRequest($"https://novelpia.com/proc/episode_list", novelpia.loginkey, $"novel_no={novelID}&sort=DOWN&page=0");
                 if (!string.IsNullOrEmpty(listResponseText))
                 {
                     var chapterMatch = Regex.Match(listResponseText, @"id=""bookmark_(\d+)""></i>(.+?)</b>");
@@ -91,27 +98,26 @@ namespace NovelpiaDownloaderEnhanced
         {
             try
             {
-                _httpClient.DefaultRequestHeaders.Clear(); // Clear headers to prevent duplicates
-                _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36");
-
-                // ADDED NULL CHECK HERE
-                if (!string.IsNullOrEmpty(loginkey))
-                {
-                    _httpClient.DefaultRequestHeaders.Add("Cookie", $"LOGINKEY={loginkey};");
-                }
-
-                HttpResponseMessage response;
+                HttpRequestMessage request;
                 if (!string.IsNullOrEmpty(data))
                 {
-                    var content = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded");
-                    response = await _httpClient.PostAsync(url, content);
+                    request = new HttpRequestMessage(HttpMethod.Post, url);
+                    request.Content = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded");
                 }
                 else
                 {
-                    response = await _httpClient.GetAsync(url);
+                    request = new HttpRequestMessage(HttpMethod.Get, url);
                 }
 
-                response.EnsureSuccessStatusCode(); // Throws if the response is not a success code.
+                request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36");
+
+                if (!string.IsNullOrEmpty(loginkey))
+                {
+                    request.Headers.Add("Cookie", $"LOGINKEY={loginkey};");
+                }
+
+                HttpResponseMessage response = await _httpClient.SendAsync(request);
+                response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsStringAsync();
             }
             catch (HttpRequestException ex)
