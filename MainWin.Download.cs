@@ -143,7 +143,7 @@ namespace NovelpiaDownloader
                 if (saveAsEpub)
                 {
                     // ====================================================================
-                    // BROKEN EPUB GENERATION LOGIC
+                    // BROKEN EPUB GENERATION LOGIC PLEASE WORK
                     // ====================================================================
                     Log("Starting EPUB generation...", isHeadless);
 
@@ -178,7 +178,7 @@ namespace NovelpiaDownloader
                             imageDownloadInfos.Add((img.url, localImgPath, "Illustration", SKEncodedImageFormat.Jpeg));
                             contentImagesForEpub.Add(img.filename);
                         }
-                        File.Delete(chapterInfo.jsonPath); // Clean up processed JSON file
+                        File.Delete(chapterInfo.jsonPath); 
                     }
 
                     // 5. Download all queued images (cover and content)
@@ -190,7 +190,7 @@ namespace NovelpiaDownloader
 
                     // 6. Write static files (CSS)
                     File.WriteAllText(Path.Combine(oebpsPath, "Styles", "Stylesheet.css"), MinifyCss(EpubTemplate.stylesheet));
-                    // Note: sgc-toc.css is not used by the new writer but kept in case you have custom templates
+                  
                     File.WriteAllText(Path.Combine(oebpsPath, "Styles", "sgc-toc.css"), MinifyCss(EpubTemplate.sgctoc));
 
 
@@ -211,7 +211,7 @@ namespace NovelpiaDownloader
                         Log($"Error during EPUB file generation: {ex.Message}", isHeadless);
                     }
                     // ====================================================================
-                    // END: EPUB GENERATION LOGIC
+                    // END: EPUB GENERATION LOGIC | DID NOT WORK
                     // ====================================================================
                 }
                 else
@@ -327,7 +327,7 @@ namespace NovelpiaDownloader
                     }
                 }
 
-                // Clean the resulting HTML using your existing robust function.
+                
                 string cleanedHtml = CleanAndEnsureXhtmlCompliance(textStr);
 
                 contentBuilder.Append(cleanedHtml);
@@ -343,14 +343,14 @@ namespace NovelpiaDownloader
                 File.Delete(outputPath);
             }
 
-            // Try external zip tools first (most reliable)
+          
             if (TryCreateEpubWithZipCommand(sourceDirectory, outputPath) ||
                 TryCreateEpubWith7Zip(sourceDirectory, outputPath))
             {
                 return;
             }
 
-            // Fallback to the new, reliable System.IO.Compression method
+           
             Log("Warning: External zip tools not found. Using internal zip library.", false);
             File.WriteAllText(Path.Combine(sourceDirectory, "mimetype"), "application/epub+zip", Encoding.UTF8);
             CreateEpubWithSystemZip(sourceDirectory, outputPath); // <-- Corrected call
@@ -565,7 +565,7 @@ namespace NovelpiaDownloader
         private readonly string _synopsis;
         private readonly List<string> _tags;
         private readonly List<Tuple<string, string>> _chapters; // Item1: Title, Item2: Content (as XHTML string)
-        private readonly List<string> _imageFilenames; // e.g., "1.jpg", "2.jpg"
+        private readonly List<string> _imageFilenames; // e.g., "1.jpg", "2.webp"
 
         private readonly XNamespace _nsOpf = "http://www.idpf.org/2007/opf";
         private readonly XNamespace _nsDc = "http://purl.org/dc/elements/1.1/";

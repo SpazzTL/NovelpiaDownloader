@@ -126,7 +126,7 @@ namespace NovelpiaDownloader
             LoginButton1.Text = Localization.GetString("LoginButton");
             LoginButton2.Text = Localization.GetString("LoginWithKeyButton");
 
-            // Settings are not in a groupbox in the designer, they are loose on the form
+            
             FontLabel.Text = Localization.GetString("FontMappingLabel");
             FontButton.Text = Localization.GetString("OpenButton");
             ThreadLabel.Text = Localization.GetString("ThreadsLabel");
@@ -135,7 +135,7 @@ namespace NovelpiaDownloader
 
             DownloadGroup.Text = Localization.GetString("DownloadGroup");
             NovelNoLable.Text = Localization.GetString("NovelIdLabel");
-            FromCheck.Text = Localization.GetString("DownloadRangeLabel"); // Combined Label
+            FromCheck.Text = Localization.GetString("DownloadRangeLabel"); 
             ToLabel.Text = Localization.GetString("ToLabel");
             ExtensionLabel.Text = Localization.GetString("FormatLabel");
             // Options are not in a groupbox
